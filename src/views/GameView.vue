@@ -7,6 +7,7 @@ import {
   findCornerAnchors,
   findValidPlacementsAtAnchor,
   getNextValidOrientation,
+  getFlippedOrientation,
   hasValidMoves,
   getValidAnchorsForPiece,
   type PlayerColor,
@@ -303,15 +304,13 @@ function flipPieceAction() {
   if (!game.value || !myColor.value || selectedPieceId.value === null) return
 
   if (previewCells.value) {
-    const nextCells = getNextValidOrientation(
+    const flippedCells = getFlippedOrientation(
       game.value.board as Board,
-      selectedPieceId.value,
       previewCells.value,
-      myColor.value,
-      "cw"
+      myColor.value
     )
-    if (nextCells) {
-      previewCells.value = nextCells
+    if (flippedCells) {
+      previewCells.value = flippedCells
     }
   }
 }

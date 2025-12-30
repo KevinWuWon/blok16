@@ -1,6 +1,6 @@
 // Client-side (and shared) validation logic for Blokus piece placement
 
-import { PIECES, getAllOrientations, translateCells, normalize, rotateCW } from "./pieces";
+import { PIECES, getAllOrientations, translateCells, normalize, rotateCW, flipH } from "./pieces";
 
 export const BOARD_SIZE = 14;
 export const STARTING_POSITIONS = {
@@ -295,6 +295,17 @@ export function getNextValidOrientation(
   return null; // No valid orientation found
 }
 
+// Get the flipped (horizontally mirrored) version of the current placement
+export function getFlippedOrientation(
+  board: Board,
+  currentCells: [number, number][],
+  player: PlayerColor
+): [number, number][] | null {
+  const normalizedCurrent = normalize(currentCells);
+  const flipped = flipH(normalizedCurrent);
+  return tryFindValidPosition(board, flipped, currentCells, player);
+}
+
 // Counter-clockwise rotation
 function rotateCCW(cells: [number, number][]): [number, number][] {
   const rotated = cells.map(([r, c]) => [-c, r] as [number, number]);
@@ -394,6 +405,8 @@ export function getCellsCenter(cells: [number, number][]): { row: number; col: n
 // Find the placement whose center is closest to the cursor position
 // This is used during drag to pick the best placement when there are multiple
 // valid placements at the same anchor (e.g., first move on starting position)
+// When preferredOrientationIndex is provided, only placements with that orientation
+// are considered (unless none exist, then falls back to all placements)
 export function findBestPlacementForCursor(
   cursorRow: number,
   cursorCol: number,
@@ -403,20 +416,25 @@ export function findBestPlacementForCursor(
   if (placements.length === 0) return null;
   if (placements.length === 1) return placements[0];
 
-  let bestPlacement = placements[0];
+  // Filter to only placements with the preferred orientation if specified
+  let candidatePlacements = placements;
+  if (preferredOrientationIndex !== undefined) {
+    const matchingOrientation = placements.filter(
+      p => p.orientationIndex === preferredOrientationIndex
+    );
+    if (matchingOrientation.length > 0) {
+      candidatePlacements = matchingOrientation;
+    }
+    // If no matching orientation, fall back to all placements
+  }
+
+  let bestPlacement = candidatePlacements[0];
   let minDist = Infinity;
 
-  for (const placement of placements) {
+  for (const placement of candidatePlacements) {
     const center = getCellsCenter(placement.cells);
     // Use squared distance (no need for sqrt for comparison)
-    let dist = (center.row - cursorRow) ** 2 + (center.col - cursorCol) ** 2;
-
-    // Slight preference for placements with the preferred orientation
-    // (helps maintain consistency when rotating)
-    if (preferredOrientationIndex !== undefined &&
-        placement.orientationIndex === preferredOrientationIndex) {
-      dist -= 0.1; // Small bonus
-    }
+    const dist = (center.row - cursorRow) ** 2 + (center.col - cursorCol) ** 2;
 
     if (dist < minDist) {
       minDist = dist;
