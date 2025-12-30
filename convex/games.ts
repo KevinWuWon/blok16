@@ -1,6 +1,26 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { api } from "./_generated/api";
+
+// Helper to schedule push notification
+async function schedulePushNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  scheduler: any,
+  playerId: string,
+  title: string,
+  body: string,
+  gameCode: string,
+  tag: string
+) {
+  await scheduler.runAfter(0, api.pushActions.sendPushNotification, {
+    playerId,
+    title,
+    body,
+    gameCode,
+    tag,
+  });
+}
 
 // Re-implement validation logic for server-side (can't import from lib in Convex)
 const BOARD_SIZE = 14;
@@ -498,6 +518,49 @@ export const placePiece = mutation({
       lastPassedBy: null,
     });
 
+    // Send push notification to the next player (if game is still playing)
+    if (newStatus === "playing") {
+      const nextPlayer = game.players[nextTurn];
+      const nextPlayerId = normalizePlayer(nextPlayer);
+      if (nextPlayerId) {
+        await schedulePushNotification(
+          ctx.scheduler,
+          nextPlayerId,
+          "Blokus Duo",
+          "It's your turn!",
+          args.code,
+          "your-turn"
+        );
+      }
+    } else if (newStatus === "finished") {
+      // Notify both players about game end
+      const bluePlayerId = normalizePlayer(game.players.blue);
+      const orangePlayerId = normalizePlayer(game.players.orange);
+
+      if (bluePlayerId) {
+        const message = newWinner === "blue" ? "You won! 🎉" : newWinner === "draw" ? "It's a draw!" : "You lost!";
+        await schedulePushNotification(
+          ctx.scheduler,
+          bluePlayerId,
+          "Blokus Duo - Game Over",
+          message,
+          args.code,
+          "game-end"
+        );
+      }
+      if (orangePlayerId) {
+        const message = newWinner === "orange" ? "You won! 🎉" : newWinner === "draw" ? "It's a draw!" : "You lost!";
+        await schedulePushNotification(
+          ctx.scheduler,
+          orangePlayerId,
+          "Blokus Duo - Game Over",
+          message,
+          args.code,
+          "game-end"
+        );
+      }
+    }
+
     return { success: true };
   },
 });
@@ -548,11 +611,52 @@ export const passTurn = mutation({
         winner,
         currentTurn: nextTurn,
       });
+
+      // Notify both players about game end
+      const bluePlayerId = normalizePlayer(game.players.blue);
+      const orangePlayerId = normalizePlayer(game.players.orange);
+
+      if (bluePlayerId) {
+        const message = winner === "blue" ? "You won! 🎉" : winner === "draw" ? "It's a draw!" : "You lost!";
+        await schedulePushNotification(
+          ctx.scheduler,
+          bluePlayerId,
+          "Blokus Duo - Game Over",
+          message,
+          args.code,
+          "game-end"
+        );
+      }
+      if (orangePlayerId) {
+        const message = winner === "orange" ? "You won! 🎉" : winner === "draw" ? "It's a draw!" : "You lost!";
+        await schedulePushNotification(
+          ctx.scheduler,
+          orangePlayerId,
+          "Blokus Duo - Game Over",
+          message,
+          args.code,
+          "game-end"
+        );
+      }
     } else {
       await ctx.db.patch(game._id, {
         currentTurn: nextTurn,
         lastPassedBy: playerColor,
       });
+
+      // Notify next player it's their turn
+      const nextPlayer = game.players[nextTurn];
+      const nextPlayerId = normalizePlayer(nextPlayer);
+      if (nextPlayerId) {
+        await schedulePushNotification(
+          ctx.scheduler,
+          nextPlayerId,
+          "Blokus Duo",
+          "It's your turn!",
+          args.code,
+          "your-turn"
+        );
+      }
     }
 
     return { success: true };

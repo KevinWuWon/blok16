@@ -9,6 +9,9 @@
  */
 
 import type * as games from "../games.js";
+import type * as http from "../http.js";
+import type * as push from "../push.js";
+import type * as pushActions from "../pushActions.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +21,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   games: typeof games;
+  http: typeof http;
+  push: typeof push;
+  pushActions: typeof pushActions;
 }>;
 
 /**

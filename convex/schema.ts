@@ -25,4 +25,20 @@ export default defineSchema({
     lastPassedBy: v.union(v.literal("blue"), v.literal("orange"), v.null()),
     createdAt: v.number(),
   }).index("by_code", ["code"]),
+
+  // Push notification subscriptions
+  pushSubscriptions: defineTable({
+    playerId: v.string(),
+    endpoint: v.string(),
+    keys: v.object({
+      p256dh: v.string(),
+      auth: v.string(),
+    }),
+    createdAt: v.number(),
+    // Track which game codes this subscription is interested in
+    gameCode: v.optional(v.string()),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_endpoint", ["endpoint"])
+    .index("by_game", ["gameCode"]),
 });
