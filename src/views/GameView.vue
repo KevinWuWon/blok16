@@ -271,7 +271,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 </script>
 
 <template>
-  <div class="min-h-screen lg:h-screen lg:max-h-screen flex flex-col">
+  <div class="h-dvh flex flex-col overflow-hidden">
     <!-- Loading state -->
     <div
       v-if="isLoading"
