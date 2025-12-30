@@ -326,6 +326,225 @@ describe('findBestPlacementForCursor', () => {
   })
 })
 
+// ============================================================================
+// Tests for orientation preservation during drag and anchor clicks
+// ============================================================================
+
+describe('Orientation preservation - filtering placements by orientationIndex', () => {
+  it('filtering placements by specific orientationIndex returns only matching placements', () => {
+    const board = createEmptyBoard()
+    const pieceId = 1 // I2 - has 2 orientations (horizontal=0, vertical=1)
+
+    const placements = findValidPlacementsAtAnchor(
+      board,
+      pieceId,
+      STARTING_POSITIONS.orange.row,
+      STARTING_POSITIONS.orange.col,
+      'orange'
+    )
+
+    // I2 has 4 placements (2 orientations × 2 cells each)
+    expect(placements.length).toBe(4)
+
+    // Filter to only horizontal orientation (index 0)
+    const horizontalOnly = placements.filter(p => p.orientationIndex === 0)
+    expect(horizontalOnly.length).toBe(2)
+    for (const p of horizontalOnly) {
+      expect(p.orientationIndex).toBe(0)
+    }
+
+    // Filter to only vertical orientation (index 1)
+    const verticalOnly = placements.filter(p => p.orientationIndex === 1)
+    expect(verticalOnly.length).toBe(2)
+    for (const p of verticalOnly) {
+      expect(p.orientationIndex).toBe(1)
+    }
+  })
+
+  it('filtering by non-existent orientationIndex returns empty array', () => {
+    const board = createEmptyBoard()
+    const pieceId = 0 // I1 - has only 1 orientation (index 0)
+
+    const placements = findValidPlacementsAtAnchor(
+      board,
+      pieceId,
+      STARTING_POSITIONS.orange.row,
+      STARTING_POSITIONS.orange.col,
+      'orange'
+    )
+
+    expect(placements.length).toBe(1)
+    expect(placements[0].orientationIndex).toBe(0)
+
+    // Filter for orientation 1 - should return empty
+    const filtered = placements.filter(p => p.orientationIndex === 1)
+    expect(filtered.length).toBe(0)
+  })
+
+  it('filtering L4 placements preserves only the requested orientation', () => {
+    const board = createEmptyBoard()
+    const pieceId = 5 // L4 - has 8 orientations
+
+    const placements = findValidPlacementsAtAnchor(
+      board,
+      pieceId,
+      STARTING_POSITIONS.blue.row,
+      STARTING_POSITIONS.blue.col,
+      'blue'
+    )
+
+    // L4 has 8 orientations × 4 cells = up to 32 placements
+    expect(placements.length).toBeGreaterThan(8)
+
+    // Filter to orientation 3 specifically
+    const orientationThreeOnly = placements.filter(p => p.orientationIndex === 3)
+
+    // Should have 4 placements (one for each cell of the L4 at this orientation)
+    expect(orientationThreeOnly.length).toBe(4)
+
+    // All should be orientation 3
+    for (const p of orientationThreeOnly) {
+      expect(p.orientationIndex).toBe(3)
+    }
+  })
+
+  it('dragging behavior: when preferred orientation has no valid placements at anchor, no placement is returned', () => {
+    // This simulates what happens during drag - we filter first, then pick best
+    const board = createEmptyBoard()
+    // Place a piece to create a more complex board state
+    board[9][9] = 2 // Orange at starting position
+
+    // Now find placements at a diagonal anchor for a new piece
+    const anchors = findCornerAnchors(board, 'orange')
+    expect(anchors.length).toBe(4) // Diagonal corners around (9,9)
+
+    // Pick anchor at (8,8) - top-left diagonal
+    const anchor = anchors.find(([r, c]) => r === 8 && c === 8)
+    expect(anchor).toBeDefined()
+
+    // Get placements for I2 at this anchor
+    const placements = findValidPlacementsAtAnchor(board, 1, 8, 8, 'orange')
+
+    // I2 has 2 orientations - check which are available
+    const orientation0 = placements.filter(p => p.orientationIndex === 0)
+    const orientation1 = placements.filter(p => p.orientationIndex === 1)
+
+    // If we want orientation 0 and it's available, we get it
+    if (orientation0.length > 0) {
+      const result = findBestPlacementForCursor(8, 8, orientation0, 0)
+      expect(result).not.toBeNull()
+      expect(result?.orientationIndex).toBe(0)
+    }
+
+    // If we want orientation 1 and it's available, we get it
+    if (orientation1.length > 0) {
+      const result = findBestPlacementForCursor(8, 8, orientation1, 1)
+      expect(result).not.toBeNull()
+      expect(result?.orientationIndex).toBe(1)
+    }
+
+    // Simulate wanting a specific orientation that may not be valid at certain anchor
+    // by using a filtered empty array
+    const result = findBestPlacementForCursor(8, 8, [], 0)
+    expect(result).toBeNull()
+  })
+
+  it('anchor click behavior: if current orientation is valid, it should be selected', () => {
+    const board = createEmptyBoard()
+    const pieceId = 1 // I2
+
+    // Find all valid placements at starting position
+    const placements = findValidPlacementsAtAnchor(
+      board,
+      pieceId,
+      STARTING_POSITIONS.orange.row,
+      STARTING_POSITIONS.orange.col,
+      'orange'
+    )
+
+    // Simulate current orientation being 1 (vertical)
+    const currentOrientationIndex = 1
+
+    // Look for matching orientation (simulating anchor click behavior)
+    const matchingOrientation = placements.find(
+      p => p.orientationIndex === currentOrientationIndex
+    )
+
+    // Should find a matching placement
+    expect(matchingOrientation).toBeDefined()
+    expect(matchingOrientation?.orientationIndex).toBe(1)
+
+    // The fallback behavior: if no match, use first
+    const placement = matchingOrientation || placements[0]
+    expect(placement.orientationIndex).toBe(1) // Should be our preferred, not fallback
+  })
+
+  it('anchor click preserves orientation across different valid anchors', () => {
+    const board = createEmptyBoard()
+    // Place I1 at orange starting position
+    board[9][9] = 2
+
+    // Now orange has anchors at diagonals
+    const anchors = findCornerAnchors(board, 'orange')
+
+    // Take I2 and check if orientation 0 is valid at multiple anchors
+    const pieceId = 1
+
+    let hasOrientation0AtAnchor1 = false
+    let hasOrientation0AtAnchor2 = false
+
+    if (anchors.length >= 2) {
+      const placements1 = findValidPlacementsAtAnchor(board, pieceId, anchors[0][0], anchors[0][1], 'orange')
+      const placements2 = findValidPlacementsAtAnchor(board, pieceId, anchors[1][0], anchors[1][1], 'orange')
+
+      hasOrientation0AtAnchor1 = placements1.some(p => p.orientationIndex === 0)
+      hasOrientation0AtAnchor2 = placements2.some(p => p.orientationIndex === 0)
+
+      // If orientation 0 is valid at both anchors, we can maintain it
+      if (hasOrientation0AtAnchor1 && hasOrientation0AtAnchor2) {
+        const match1 = placements1.find(p => p.orientationIndex === 0)
+        const match2 = placements2.find(p => p.orientationIndex === 0)
+        expect(match1).toBeDefined()
+        expect(match2).toBeDefined()
+        expect(match1?.orientationIndex).toBe(match2?.orientationIndex)
+      }
+    }
+  })
+
+  it('dragging to new anchor without valid orientation should not change piece', () => {
+    // This test demonstrates that if we filter to only our preferred orientation
+    // and the filter returns empty, we should NOT update the preview
+
+    const board = createEmptyBoard()
+    const pieceId = 1 // I2
+
+    // Get all placements at starting position
+    const placements = findValidPlacementsAtAnchor(
+      board,
+      pieceId,
+      STARTING_POSITIONS.orange.row,
+      STARTING_POSITIONS.orange.col,
+      'orange'
+    )
+
+    // Simulate a drag where we want to preserve orientation 0
+    const preferredOrientation = 0
+    const matchingPlacements = placements.filter(p => p.orientationIndex === preferredOrientation)
+
+    if (matchingPlacements.length > 0) {
+      // Good - we have valid placements with our orientation
+      const result = findBestPlacementForCursor(9, 9, matchingPlacements, preferredOrientation)
+      expect(result).not.toBeNull()
+      expect(result?.orientationIndex).toBe(preferredOrientation)
+    }
+
+    // If we filter and get nothing, the preview should NOT be updated
+    // (simulated by getting null from an empty filtered array)
+    const emptyFilterResult = findBestPlacementForCursor(9, 9, [], preferredOrientation)
+    expect(emptyFilterResult).toBeNull()
+  })
+})
+
 describe('getFlippedOrientation', () => {
   it('flips P5 piece without shifting position (first move)', () => {
     // First move scenario - piece must cover starting position

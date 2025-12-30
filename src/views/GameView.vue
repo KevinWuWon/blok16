@@ -368,8 +368,23 @@ function handleBoardClick(row: number, col: number) {
   );
 
   if (placements.length > 0) {
+    // If piece is already provisionally placed, try to keep its current orientation
+    let preferredOrientationIndex = currentOrientationIndex.value;
+
+    if (previewCells.value) {
+      // Find the actual orientation of the current preview cells
+      const orientations = getAllOrientationsForPiece(selectedPieceId.value);
+      const normalizedPreview = normalize(previewCells.value);
+      for (let i = 0; i < orientations.length; i++) {
+        if (cellsMatchUnordered(orientations[i], normalizedPreview)) {
+          preferredOrientationIndex = i;
+          break;
+        }
+      }
+    }
+
     const matchingOrientation = placements.find(
-      (p) => p.orientationIndex === currentOrientationIndex.value,
+      (p) => p.orientationIndex === preferredOrientationIndex,
     );
     const placement = matchingOrientation || placements[0];
     previewCells.value = placement.cells;
@@ -497,6 +512,19 @@ function getAllOrientationsForPiece(pieceId: number): [number, number][][] {
 function rotateCW(cells: [number, number][]): [number, number][] {
   const rotated = cells.map(([r, c]) => [c, -r] as [number, number]);
   return normalize(rotated);
+}
+
+// Check if two cell arrays match (ignoring order)
+function cellsMatchUnordered(
+  a: [number, number][],
+  b: [number, number][],
+): boolean {
+  if (a.length !== b.length) return false;
+  const setA = new Set(a.map(([r, c]) => `${r},${c}`));
+  for (const [r, c] of b) {
+    if (!setA.has(`${r},${c}`)) return false;
+  }
+  return true;
 }
 </script>
 

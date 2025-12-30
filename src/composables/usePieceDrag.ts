@@ -98,19 +98,25 @@ export function usePieceDrag(
         playerColor.value
       )
 
-      // Find the best placement based on cursor position
-      // This handles the case where there are multiple valid placements at the same anchor
-      // (e.g., first move where any cell can cover the starting position)
-      const placement = findBestPlacementForCursor(
-        gridPosition.value.row,
-        gridPosition.value.col,
-        placements,
-        currentOrientationIndex.value
+      // Only consider placements with the current orientation - dragging should never rotate
+      const matchingPlacements = placements.filter(
+        p => p.orientationIndex === currentOrientationIndex.value
       )
 
-      if (placement) {
-        onPreviewUpdate(placement.cells)
+      if (matchingPlacements.length > 0) {
+        // Find the best placement based on cursor position among matching orientations
+        const placement = findBestPlacementForCursor(
+          gridPosition.value.row,
+          gridPosition.value.col,
+          matchingPlacements,
+          currentOrientationIndex.value
+        )
+
+        if (placement) {
+          onPreviewUpdate(placement.cells)
+        }
       }
+      // If no valid placement with current orientation, don't update preview
     }
   }
 
