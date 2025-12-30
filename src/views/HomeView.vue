@@ -1,35 +1,37 @@
 <script setup lang="ts">
-import { useConvexMutation } from "convex-vue";
-import { api } from "../../convex/_generated/api";
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useConvexMutation } from "convex-vue"
+import { api } from "../../convex/_generated/api"
 
-const router = useRouter();
-const isCreating = ref(false);
+const router = useRouter()
+const isCreating = ref(false)
 
 // Get or create player ID
-const playerId = ref<string>("");
+const playerId = ref<string>("")
 
 onMounted(() => {
-  let id = localStorage.getItem("blokus-player-id");
+  let id = localStorage.getItem("blokus-player-id")
   if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("blokus-player-id", id);
+    id = crypto.randomUUID()
+    localStorage.setItem("blokus-player-id", id)
   }
-  playerId.value = id;
-});
+  playerId.value = id
+})
 
-const createGameMutation = useConvexMutation(api.games.createGame);
+const createGameMutation = useConvexMutation(api.games.createGame)
 
 async function createGame() {
-  if (!playerId.value || isCreating.value) return;
+  if (!playerId.value || isCreating.value) return
 
-  isCreating.value = true;
+  isCreating.value = true
   try {
-    const result = await createGameMutation.mutate({ playerId: playerId.value });
+    const result = await createGameMutation.mutate({ playerId: playerId.value })
     if (result?.code) {
-      router.push(`/game/${result.code}`);
+      router.push(`/game/${result.code}`)
     }
   } finally {
-    isCreating.value = false;
+    isCreating.value = false
   }
 }
 </script>

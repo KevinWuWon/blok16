@@ -1,24 +1,25 @@
 <script setup lang="ts">
-import { PIECES, getAllOrientations, getBoundingBox } from "../../lib/pieces";
+import { PIECES, getAllOrientations, getBoundingBox } from "../../lib/pieces"
+import PieceMiniPreview from './PieceMiniPreview.vue'
 
 const props = defineProps<{
-  pieces: number[];
-  playerColor: "blue" | "orange";
-  selectedPieceId: number | null;
-  disabled: boolean;
-  horizontal?: boolean;
-}>();
+  pieces: number[]
+  playerColor: "blue" | "orange"
+  selectedPieceId: number | null
+  disabled: boolean
+  horizontal?: boolean
+}>()
 
 const emit = defineEmits<{
-  select: [pieceId: number];
-}>();
+  select: [pieceId: number]
+}>()
 
 function getPieceCells(pieceId: number): [number, number][] {
-  return PIECES[pieceId].cells;
+  return PIECES[pieceId].cells
 }
 
 function getPieceBounds(pieceId: number): { rows: number; cols: number } {
-  return getBoundingBox(PIECES[pieceId].cells);
+  return getBoundingBox(PIECES[pieceId].cells)
 }
 </script>
 

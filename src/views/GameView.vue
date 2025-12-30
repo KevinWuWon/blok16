@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { useConvexQuery, useConvexMutation } from "convex-vue";
-import { api } from "../../../convex/_generated/api";
-import type { Doc } from "../../../convex/_generated/dataModel";
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useConvexQuery, useConvexMutation } from "convex-vue"
+import { api } from "../../convex/_generated/api"
+import type { Doc } from "../../convex/_generated/dataModel"
 import {
   findCornerAnchors,
   findValidPlacementsAtAnchor,
@@ -10,96 +12,99 @@ import {
   getValidAnchorsForPiece,
   type PlayerColor,
   type Board,
-} from "../../../lib/validation";
-import { PIECES, flipH, normalize } from "../../../lib/pieces";
+} from "../../lib/validation"
+import { PIECES, flipH, normalize } from "../../lib/pieces"
+import BoardComponent from '@/components/Board.vue'
+import PieceTray from '@/components/PieceTray.vue'
+import PieceMiniPreview from '@/components/PieceMiniPreview.vue'
 
-type GameState = Doc<"games">;
+type GameState = Doc<"games">
 
-const route = useRoute();
-const code = computed(() => route.params.code as string);
+const route = useRoute()
+const code = computed(() => route.params.code as string)
 
 // Player ID from localStorage
-const playerId = ref<string>("");
+const playerId = ref<string>("")
 
 onMounted(() => {
-  let id = localStorage.getItem("blokus-player-id");
+  let id = localStorage.getItem("blokus-player-id")
   if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("blokus-player-id", id);
+    id = crypto.randomUUID()
+    localStorage.setItem("blokus-player-id", id)
   }
-  playerId.value = id;
-});
+  playerId.value = id
+})
 
 // Convex query for game state
-const { data: game, isLoading } = useConvexQuery(api.games.getGame, () => ({
+const { data: game, isPending: isLoading } = useConvexQuery(api.games.getGame, () => ({
   code: code.value,
-}));
+}))
 
 // Mutations
-const joinGameMutation = useConvexMutation(api.games.joinGame);
-const placePieceMutation = useConvexMutation(api.games.placePiece);
-const passTurnMutation = useConvexMutation(api.games.passTurn);
+const joinGameMutation = useConvexMutation(api.games.joinGame)
+const placePieceMutation = useConvexMutation(api.games.placePiece)
+const passTurnMutation = useConvexMutation(api.games.passTurn)
 
 // Local game state
-const selectedPieceId = ref<number | null>(null);
-const previewCells = ref<[number, number][] | null>(null);
-const currentOrientationIndex = ref(0);
-const showPieceSheet = ref(false);
-const joinError = ref<string | null>(null);
+const selectedPieceId = ref<number | null>(null)
+const previewCells = ref<[number, number][] | null>(null)
+const currentOrientationIndex = ref(0)
+const showPieceSheet = ref(false)
+const joinError = ref<string | null>(null)
 
 // Computed values
 const myColor = computed<PlayerColor | null>(() => {
-  if (!game.value || !playerId.value) return null;
-  if (game.value.players.blue === playerId.value) return "blue";
-  if (game.value.players.orange === playerId.value) return "orange";
-  return null;
-});
+  if (!game.value || !playerId.value) return null
+  if (game.value.players.blue === playerId.value) return "blue"
+  if (game.value.players.orange === playerId.value) return "orange"
+  return null
+})
 
 const isMyTurn = computed(() => {
-  return game.value?.currentTurn === myColor.value && game.value?.status === "playing";
-});
+  return game.value?.currentTurn === myColor.value && game.value?.status === "playing"
+})
 
 const myPieces = computed(() => {
-  if (!game.value || !myColor.value) return [];
-  return game.value.pieces[myColor.value];
-});
+  if (!game.value || !myColor.value) return []
+  return game.value.pieces[myColor.value]
+})
 
 const opponentPieces = computed(() => {
-  if (!game.value || !myColor.value) return [];
-  const opponentColor = myColor.value === "blue" ? "orange" : "blue";
-  return game.value.pieces[opponentColor];
-});
+  if (!game.value || !myColor.value) return []
+  const opponentColor = myColor.value === "blue" ? "orange" : "blue"
+  return game.value.pieces[opponentColor]
+})
 
 const validAnchors = computed(() => {
-  if (!game.value || !myColor.value || !isMyTurn.value) return [];
-  return findCornerAnchors(game.value.board as Board, myColor.value);
-});
+  if (!game.value || !myColor.value || !isMyTurn.value) return []
+  return findCornerAnchors(game.value.board as Board, myColor.value)
+})
 
 const validAnchorsForSelectedPiece = computed(() => {
-  if (!game.value || !myColor.value || selectedPieceId.value === null || !isMyTurn.value) return [];
-  return getValidAnchorsForPiece(game.value.board as Board, selectedPieceId.value, myColor.value);
-});
+  if (!game.value || !myColor.value || selectedPieceId.value === null || !isMyTurn.value) return []
+  return getValidAnchorsForPiece(game.value.board as Board, selectedPieceId.value, myColor.value)
+})
 
 const canPass = computed(() => {
-  if (!game.value || !myColor.value || !isMyTurn.value) return false;
-  return !hasValidMoves(game.value.board as Board, myPieces.value, myColor.value);
-});
+  if (!game.value || !myColor.value || !isMyTurn.value) return false
+  return !hasValidMoves(game.value.board as Board, myPieces.value, myColor.value)
+})
 
 const hasAnyValidMoves = computed(() => {
-  if (!game.value || !myColor.value) return true;
-  return hasValidMoves(game.value.board as Board, myPieces.value, myColor.value);
-});
+  if (!game.value || !myColor.value) return true
+  return hasValidMoves(game.value.board as Board, myPieces.value, myColor.value)
+})
 
 const needsToJoin = computed(() => {
-  if (!game.value || !playerId.value) return false;
+  if (!game.value || !playerId.value) return false
   // Not already a player and game is waiting
-  return !myColor.value && game.value.status === "waiting";
-});
+  return !myColor.value && game.value.status === "waiting"
+})
 
 const gameUrl = computed(() => {
-  if (typeof window === "undefined") return "";
-  return `${window.location.origin}/game/${code.value}`;
-});
+  if (typeof window === "undefined") return ""
+  return `${window.location.origin}/game/${code.value}`
+})
 
 // Auto-join when arriving at game page
 watch([game, playerId], async () => {
@@ -107,31 +112,31 @@ watch([game, playerId], async () => {
     const result = await joinGameMutation.mutate({
       code: code.value,
       playerId: playerId.value,
-    });
+    })
     if (!result?.success && result?.error) {
-      joinError.value = result.error;
+      joinError.value = result.error
     }
   }
-}, { immediate: true });
+}, { immediate: true })
 
 // Actions
 function selectPiece(pieceId: number) {
-  if (!myPieces.value.includes(pieceId)) return;
-  selectedPieceId.value = pieceId;
-  previewCells.value = null;
-  currentOrientationIndex.value = 0;
-  showPieceSheet.value = false;
+  if (!myPieces.value.includes(pieceId)) return
+  selectedPieceId.value = pieceId
+  previewCells.value = null
+  currentOrientationIndex.value = 0
+  showPieceSheet.value = false
 }
 
 function clearSelection() {
-  selectedPieceId.value = null;
-  previewCells.value = null;
-  currentOrientationIndex.value = 0;
+  selectedPieceId.value = null
+  previewCells.value = null
+  currentOrientationIndex.value = 0
 }
 
 function handleBoardClick(row: number, col: number) {
-  if (!game.value || !myColor.value || !isMyTurn.value) return;
-  if (selectedPieceId.value === null) return;
+  if (!game.value || !myColor.value || !isMyTurn.value) return
+  if (selectedPieceId.value === null) return
 
   const placements = findValidPlacementsAtAnchor(
     game.value.board as Board,
@@ -139,20 +144,20 @@ function handleBoardClick(row: number, col: number) {
     row,
     col,
     myColor.value
-  );
+  )
 
   if (placements.length > 0) {
     const matchingOrientation = placements.find(
       (p) => p.orientationIndex === currentOrientationIndex.value
-    );
-    const placement = matchingOrientation || placements[0];
-    previewCells.value = placement.cells;
-    currentOrientationIndex.value = placement.orientationIndex;
+    )
+    const placement = matchingOrientation || placements[0]
+    previewCells.value = placement.cells
+    currentOrientationIndex.value = placement.orientationIndex
   }
 }
 
 function rotatePiece(direction: "cw" | "ccw") {
-  if (!game.value || !myColor.value || selectedPieceId.value === null) return;
+  if (!game.value || !myColor.value || selectedPieceId.value === null) return
 
   if (previewCells.value) {
     const nextCells = getNextValidOrientation(
@@ -161,23 +166,23 @@ function rotatePiece(direction: "cw" | "ccw") {
       previewCells.value,
       myColor.value,
       direction
-    );
+    )
     if (nextCells) {
-      previewCells.value = nextCells;
+      previewCells.value = nextCells
     }
   } else {
-    const orientations = getAllOrientationsForPiece(selectedPieceId.value);
-    const numOrientations = orientations.length;
+    const orientations = getAllOrientationsForPiece(selectedPieceId.value)
+    const numOrientations = orientations.length
     if (direction === "cw") {
-      currentOrientationIndex.value = (currentOrientationIndex.value + 1) % numOrientations;
+      currentOrientationIndex.value = (currentOrientationIndex.value + 1) % numOrientations
     } else {
-      currentOrientationIndex.value = (currentOrientationIndex.value - 1 + numOrientations) % numOrientations;
+      currentOrientationIndex.value = (currentOrientationIndex.value - 1 + numOrientations) % numOrientations
     }
   }
 }
 
 function flipPieceAction() {
-  if (!game.value || !myColor.value || selectedPieceId.value === null) return;
+  if (!game.value || !myColor.value || selectedPieceId.value === null) return
 
   if (previewCells.value) {
     const nextCells = getNextValidOrientation(
@@ -186,93 +191,90 @@ function flipPieceAction() {
       previewCells.value,
       myColor.value,
       "cw"
-    );
+    )
     if (nextCells) {
-      previewCells.value = nextCells;
+      previewCells.value = nextCells
     }
   }
 }
 
 async function confirmPlacement() {
-  if (!previewCells.value || selectedPieceId.value === null) return;
+  if (!previewCells.value || selectedPieceId.value === null) return
 
   const result = await placePieceMutation.mutate({
     code: code.value,
     playerId: playerId.value,
     pieceId: selectedPieceId.value,
     cells: previewCells.value,
-  });
+  })
 
   if (result?.success) {
-    clearSelection();
+    clearSelection()
   }
-
-  return result;
 }
 
 async function passTurnAction() {
-  const result = await passTurnMutation.mutate({
+  await passTurnMutation.mutate({
     code: code.value,
     playerId: playerId.value,
-  });
-  return result;
+  })
 }
 
 async function copyLink() {
-  await navigator.clipboard.writeText(gameUrl.value);
+  await navigator.clipboard.writeText(gameUrl.value)
 }
 
 // Keyboard shortcuts
 onMounted(() => {
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "r" || e.key === "R") {
-      rotatePiece("cw");
+      rotatePiece("cw")
     } else if (e.key === "f" || e.key === "F") {
-      flipPieceAction();
+      flipPieceAction()
     } else if (e.key === "Escape") {
       if (previewCells.value) {
-        previewCells.value = null;
+        previewCells.value = null
       } else {
-        clearSelection();
+        clearSelection()
       }
     }
-  };
+  }
 
-  window.addEventListener("keydown", handleKeydown);
+  window.addEventListener("keydown", handleKeydown)
   onUnmounted(() => {
-    window.removeEventListener("keydown", handleKeydown);
-  });
-});
+    window.removeEventListener("keydown", handleKeydown)
+  })
+})
 
 // Helper functions
 function getAllOrientationsForPiece(pieceId: number): [number, number][][] {
-  const piece = PIECES[pieceId];
-  const orientations: [number, number][][] = [];
-  const seen = new Set<string>();
+  const piece = PIECES[pieceId]
+  const orientations: [number, number][][] = []
+  const seen = new Set<string>()
 
-  let current = normalize(piece.cells);
+  let current = normalize(piece.cells)
 
   for (let flip = 0; flip < 2; flip++) {
     for (let rot = 0; rot < 4; rot++) {
       const key = [...current]
         .sort((a, b) => a[0] - b[0] || a[1] - b[1])
         .map(([r, c]) => `${r},${c}`)
-        .join("|");
+        .join("|")
       if (!seen.has(key)) {
-        seen.add(key);
-        orientations.push([...current]);
+        seen.add(key)
+        orientations.push([...current])
       }
-      current = rotateCW(current);
+      current = rotateCW(current)
     }
-    current = flipH(piece.cells);
+    current = flipH(piece.cells)
   }
 
-  return orientations;
+  return orientations
 }
 
 function rotateCW(cells: [number, number][]): [number, number][] {
-  const rotated = cells.map(([r, c]) => [c, -r] as [number, number]);
-  return normalize(rotated);
+  const rotated = cells.map(([r, c]) => [c, -r] as [number, number])
+  return normalize(rotated)
 }
 </script>
 
@@ -295,7 +297,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <!-- Header -->
       <header class="flex items-center justify-between p-4 border-b border-default">
         <div class="flex items-center gap-2">
-          <NuxtLink to="/" class="text-lg font-bold">Blokus Duo</NuxtLink>
+          <RouterLink to="/" class="text-lg font-bold">Blokus Duo</RouterLink>
           <UBadge variant="subtle" color="neutral">{{ code }}</UBadge>
         </div>
         <UButton
@@ -361,7 +363,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
           <!-- Board area -->
           <main class="flex-1 flex flex-col items-center justify-center p-2 overflow-auto">
-            <Board
+            <BoardComponent
               :board="game.board as Board"
               :preview-cells="previewCells"
               :preview-color="myColor || 'blue'"
