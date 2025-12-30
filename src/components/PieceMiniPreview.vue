@@ -19,13 +19,21 @@ const currentCells = computed(() => {
 
 const bounds = computed(() => getBoundingBox(currentCells.value))
 
-const gridSize = computed(() => Math.max(bounds.value.rows, bounds.value.cols, 2))
+// Always use 5x5 grid for consistency (largest piece is 5 squares)
+const GRID_SIZE = 5
+
+// Center the piece within the 5x5 grid
+const centeredCells = computed(() => {
+  const offsetRow = Math.floor((GRID_SIZE - bounds.value.rows) / 2)
+  const offsetCol = Math.floor((GRID_SIZE - bounds.value.cols) / 2)
+  return currentCells.value.map(([r, c]) => [r + offsetRow, c + offsetCol] as [number, number])
+})
 
 // Create flat list of cells for the grid
 const gridCells = computed(() => {
   const result: { row: number; col: number; key: string }[] = []
-  for (let row = 0; row < gridSize.value; row++) {
-    for (let col = 0; col < gridSize.value; col++) {
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
       result.push({ row, col, key: `${row}-${col}` })
     }
   }
@@ -33,7 +41,7 @@ const gridCells = computed(() => {
 })
 
 function isCellFilled(row: number, col: number): boolean {
-  return currentCells.value.some(([r, c]) => r === row && c === col)
+  return centeredCells.value.some(([r, c]) => r === row && c === col)
 }
 </script>
 
@@ -41,8 +49,8 @@ function isCellFilled(row: number, col: number): boolean {
   <div
     class="grid gap-px"
     :style="{
-      gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-      gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`
+      gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
+      gridTemplateRows: `repeat(${GRID_SIZE}, minmax(0, 1fr))`
     }"
   >
     <div

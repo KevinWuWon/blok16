@@ -12,7 +12,7 @@ import {
   type PlayerColor,
   type Board,
 } from "../../lib/validation"
-import { PIECES, normalize } from "../../lib/pieces"
+import { PIECES, normalize, flipH } from "../../lib/pieces"
 import BoardComponent from '@/components/Board.vue'
 import PieceTray from '@/components/PieceTray.vue'
 import PieceMiniPreview from '@/components/PieceMiniPreview.vue'
@@ -271,7 +271,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div class="min-h-screen lg:h-screen lg:max-h-screen flex flex-col">
     <!-- Loading state -->
     <div
       v-if="isLoading"
@@ -302,7 +302,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
     <!-- Game view -->
     <template v-else>
       <!-- Header -->
-      <header class="flex items-center justify-between p-4 border-b border-default">
+      <header class="flex items-center justify-between px-4 py-2 border-b border-default shrink-0">
         <div class="flex items-center gap-2">
           <RouterLink
             to="/"
@@ -317,15 +317,41 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             {{ code }}
           </UBadge>
         </div>
-        <UButton
-          v-if="game.status === 'waiting'"
-          variant="outline"
-          size="sm"
-          icon="i-lucide-copy"
-          @click="copyLink"
-        >
-          Copy Link
-        </UButton>
+        <!-- Game status in header -->
+        <div class="flex items-center gap-2">
+          <template v-if="game.status === 'waiting'">
+            <UButton
+              variant="outline"
+              size="sm"
+              icon="i-lucide-copy"
+              @click="copyLink"
+            >
+              Copy Link
+            </UButton>
+          </template>
+          <template v-else-if="game.status === 'finished'">
+            <span
+              v-if="game.winner === 'draw'"
+              class="font-semibold"
+            >Draw!</span>
+            <span
+              v-else
+              class="font-semibold"
+              :class="game.winner === 'blue' ? 'text-blue-500' : 'text-orange-500'"
+            >
+              {{ game.winner === myColor ? 'You win!' : 'You lose!' }}
+            </span>
+          </template>
+          <template v-else>
+            <div
+              class="w-3 h-3 rounded-full"
+              :class="game.currentTurn === 'blue' ? 'bg-blue-500' : 'bg-orange-500'"
+            />
+            <span class="text-sm">
+              {{ isMyTurn ? "Your turn" : "Opponent's turn" }}
+            </span>
+          </template>
+        </div>
       </header>
 
       <!-- Waiting for opponent -->
@@ -360,53 +386,22 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
       <!-- Game in progress or finished -->
       <template v-else>
-        <!-- Game status bar -->
-        <div class="px-4 py-2 border-b border-default">
-          <div
-            v-if="game.status === 'finished'"
-            class="text-center"
-          >
-            <span
-              v-if="game.winner === 'draw'"
-              class="font-semibold"
-            >Game Over - Draw!</span>
-            <span
-              v-else
-              class="font-semibold"
-            >
-              <span :class="game.winner === 'blue' ? 'text-blue-500' : 'text-orange-500'">
-                {{ game.winner === myColor ? 'You win!' : 'You lose!' }}
-              </span>
-            </span>
-          </div>
-          <div
-            v-else
-            class="flex items-center justify-center gap-2"
-          >
-            <div
-              class="w-3 h-3 rounded-full"
-              :class="game.currentTurn === 'blue' ? 'bg-blue-500' : 'bg-orange-500'"
-            />
-            <span>
-              {{ isMyTurn ? "Your turn" : "Opponent's turn" }}
-            </span>
-          </div>
-        </div>
-
         <!-- Main game area -->
-        <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        <div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden lg:min-h-0">
           <!-- Desktop: Left sidebar - Your pieces -->
-          <aside class="hidden lg:block w-48 border-r border-default overflow-y-auto p-2">
-            <h3 class="text-sm font-semibold mb-2 px-2">
+          <aside class="hidden lg:flex lg:flex-col w-48 border-r border-default">
+            <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               Your Pieces
             </h3>
-            <PieceTray
-              :pieces="myPieces"
-              :player-color="myColor || 'blue'"
-              :selected-piece-id="selectedPieceId"
-              :disabled="!isMyTurn"
-              @select="selectPiece"
-            />
+            <div class="flex-1 overflow-y-auto p-2">
+              <PieceTray
+                :pieces="myPieces"
+                :player-color="myColor || 'blue'"
+                :selected-piece-id="selectedPieceId"
+                :disabled="!isMyTurn"
+                @select="selectPiece"
+              />
+            </div>
           </aside>
 
           <!-- Board area -->
@@ -422,22 +417,24 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           </main>
 
           <!-- Desktop: Right sidebar - Opponent pieces -->
-          <aside class="hidden lg:block w-48 border-l border-default overflow-y-auto p-2">
-            <h3 class="text-sm font-semibold mb-2 px-2">
+          <aside class="hidden lg:flex lg:flex-col w-48 border-l border-default">
+            <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               Opponent's Pieces
             </h3>
-            <PieceTray
-              :pieces="opponentPieces"
-              :player-color="myColor === 'blue' ? 'orange' : 'blue'"
-              :selected-piece-id="null"
-              :disabled="true"
-              @select="() => {}"
-            />
+            <div class="flex-1 overflow-y-auto p-2">
+              <PieceTray
+                :pieces="opponentPieces"
+                :player-color="myColor === 'blue' ? 'orange' : 'blue'"
+                :selected-piece-id="null"
+                :disabled="true"
+                @select="() => {}"
+              />
+            </div>
           </aside>
         </div>
 
         <!-- Controls bar (bottom) -->
-        <footer class="border-t border-default p-4">
+        <footer class="border-t border-default p-4 lg:py-2 shrink-0">
           <div class="flex items-center justify-center gap-2 flex-wrap">
             <!-- Mobile: Select piece button -->
             <UButton

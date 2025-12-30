@@ -49,7 +49,8 @@ function isStartingPosition(row: number, col: number): "blue" | "orange" | null 
 
 function getCellClass(row: number, col: number): string {
   const value = props.board[row][col]
-  const classes: string[] = ["w-full", "h-full", "transition-colors"]
+  // Base classes - all cells get subtle border for grid visibility
+  const classes: string[] = ["w-full", "h-full", "transition-colors", "border", "border-gray-200", "dark:border-gray-700"]
 
   if (value === 1) {
     classes.push("bg-blue-500")
@@ -58,8 +59,6 @@ function getCellClass(row: number, col: number): string {
   } else if (isPreviewCell(row, col)) {
     classes.push(
       props.previewColor === "blue" ? "bg-blue-500/50" : "bg-orange-500/50",
-      "ring-2",
-      props.previewColor === "blue" ? "ring-blue-500" : "ring-orange-500"
     )
   } else if (isValidAnchor(row, col)) {
     classes.push(
@@ -72,9 +71,9 @@ function getCellClass(row: number, col: number): string {
     if (start) {
       classes.push(
         start === "blue" ? "bg-blue-500/10" : "bg-orange-500/10",
-        "border-2",
-        "border-dashed",
-        start === "blue" ? "border-blue-500/30" : "border-orange-500/30"
+        "!border-2",
+        "!border-dashed",
+        start === "blue" ? "!border-blue-500/30" : "!border-orange-500/30"
       )
     } else {
       classes.push("bg-default-50 dark:bg-default-900")
@@ -93,7 +92,7 @@ function handleCellClick(row: number, col: number) {
 
 <template>
   <div
-    class="grid gap-px bg-default-200 dark:bg-default-700 p-px rounded-lg shadow-lg"
+    class="grid rounded-lg shadow-lg ring-2 ring-default-400 dark:ring-default-500 overflow-hidden"
     :style="{
       gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
       width: 'min(90vw, 90vh, 560px)',
