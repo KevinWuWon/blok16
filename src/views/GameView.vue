@@ -256,6 +256,7 @@ function clearSelection() {
 function handleBoardClick(row: number, col: number) {
   if (!game.value || !myColor.value || !isMyTurn.value) return
   if (selectedPieceId.value === null) return
+  if (isDragging.value) return // Don't recompute when starting a drag
 
   const placements = findValidPlacementsAtAnchor(
     game.value.board as Board,
