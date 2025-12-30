@@ -261,6 +261,9 @@ export function getNextValidOrientation(
   const piece = PIECES[pieceId];
   const allOrientations = getAllOrientations(piece.cells);
 
+  // Get anchor cells from current placement - new placement must share at least one
+  const anchorCells = getAnchorCellsForPlacement(board, currentCells, player);
+
   // Normalize current cells to find current orientation index
   const normalizedCurrent = normalize(currentCells);
   let currentIndex = -1;
@@ -275,7 +278,7 @@ export function getNextValidOrientation(
   if (currentIndex === -1) {
     // Current orientation not found in standard orientations, use manual rotation
     const rotated = direction === "cw" ? rotateCW(currentCells) : rotateCCW(currentCells);
-    const cells = tryFindValidPosition(board, rotated, currentCells, player);
+    const cells = tryFindValidPosition(board, rotated, currentCells, player, anchorCells);
     if (cells) {
       // Try to find orientation index for the rotated cells
       const normalizedRotated = normalize(cells);
@@ -298,7 +301,7 @@ export function getNextValidOrientation(
         : (currentIndex - i + numOrientations) % numOrientations;
 
     const nextOrientation = allOrientations[nextIndex];
-    const validPosition = tryFindValidPosition(board, nextOrientation, currentCells, player);
+    const validPosition = tryFindValidPosition(board, nextOrientation, currentCells, player, anchorCells);
     if (validPosition) {
       return { cells: validPosition, orientationIndex: nextIndex };
     }
@@ -317,6 +320,10 @@ export function getFlippedOrientation(
 ): { cells: [number, number][]; orientationIndex: number } | null {
   const piece = PIECES[pieceId];
   const allOrientations = getAllOrientations(piece.cells);
+
+  // Get anchor cells from current placement - new placement must share at least one
+  const anchorCells = getAnchorCellsForPlacement(board, currentCells, player);
+  const anchorSet = new Set(anchorCells.map(([r, c]) => `${r},${c}`));
 
   // Get the center of the current placement (using floats for precision)
   const currentCenter = getCellsCenter(currentCells);
@@ -346,13 +353,19 @@ export function getFlippedOrientation(
     return 0; // fallback
   };
 
-  // If the centered position is valid, use it
-  if (isValidPlacement(board, centeredFlipped, player)) {
+  // Helper to check if placement shares an anchor cell
+  const sharesAnchorCell = (placedCells: [number, number][]): boolean => {
+    if (anchorCells.length === 0) return true;
+    return placedCells.some(([r, c]) => anchorSet.has(`${r},${c}`));
+  };
+
+  // If the centered position is valid and shares an anchor, use it
+  if (isValidPlacement(board, centeredFlipped, player) && sharesAnchorCell(centeredFlipped)) {
     return { cells: centeredFlipped, orientationIndex: findOrientationIndex(centeredFlipped) };
   }
 
-  // Otherwise, search nearby for a valid position
-  const cells = tryFindValidPosition(board, flippedNormalized, currentCells, player);
+  // Otherwise, search nearby for a valid position that shares an anchor
+  const cells = tryFindValidPosition(board, flippedNormalized, currentCells, player, anchorCells);
   if (cells) {
     return { cells, orientationIndex: findOrientationIndex(cells) };
   }
@@ -365,16 +378,58 @@ function rotateCCW(cells: [number, number][]): [number, number][] {
   return normalize(rotated);
 }
 
+// Find which cells of a placement are "anchor cells" (cells that connect to existing pieces or starting position)
+function getAnchorCellsForPlacement(
+  board: Board,
+  cells: [number, number][],
+  player: PlayerColor
+): [number, number][] {
+  const value = playerToValue(player);
+  const isFirstMove = !hasPlacedPieces(board, player);
+  const anchorCells: [number, number][] = [];
+
+  if (isFirstMove) {
+    // For first move, the anchor is the starting position
+    const start = STARTING_POSITIONS[player];
+    for (const [r, c] of cells) {
+      if (r === start.row && c === start.col) {
+        anchorCells.push([r, c]);
+      }
+    }
+  } else {
+    // For subsequent moves, anchor cells are those diagonally touching player's pieces
+    for (const [r, c] of cells) {
+      for (const [dr, dc] of getDiagonalNeighbors(r, c)) {
+        if (isInBounds(dr, dc) && board[dr][dc] === value) {
+          anchorCells.push([r, c]);
+          break;
+        }
+      }
+    }
+  }
+
+  return anchorCells;
+}
+
 // Try to find a valid position for the rotated piece near the current position
+// If anchorCells is provided, the new placement must share at least one cell position with them
 function tryFindValidPosition(
   board: Board,
   newOrientation: [number, number][],
   currentCells: [number, number][],
-  player: PlayerColor
+  player: PlayerColor,
+  anchorCells?: [number, number][]
 ): [number, number][] | null {
   // Get center of current placement
   const centerR = Math.round(currentCells.reduce((sum, [r]) => sum + r, 0) / currentCells.length);
   const centerC = Math.round(currentCells.reduce((sum, [, c]) => sum + c, 0) / currentCells.length);
+
+  // Helper to check if placement shares an anchor cell
+  const sharesAnchorCell = (placedCells: [number, number][]): boolean => {
+    if (!anchorCells || anchorCells.length === 0) return true;
+    const placedSet = new Set(placedCells.map(([r, c]) => `${r},${c}`));
+    return anchorCells.some(([r, c]) => placedSet.has(`${r},${c}`));
+  };
 
   // Try offsets in expanding rings to find valid placement close to current position
   const maxOffset = 3;
@@ -389,7 +444,7 @@ function tryFindValidPosition(
           const colOffset = centerC + dc - cellC;
           const placedCells = translateCells(newOrientation, rowOffset, colOffset);
 
-          if (isValidPlacement(board, placedCells, player)) {
+          if (isValidPlacement(board, placedCells, player) && sharesAnchorCell(placedCells)) {
             return placedCells;
           }
         }
