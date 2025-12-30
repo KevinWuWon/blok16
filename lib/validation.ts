@@ -301,9 +301,30 @@ export function getFlippedOrientation(
   currentCells: [number, number][],
   player: PlayerColor
 ): [number, number][] | null {
+  // Get the center of the current placement (using floats for precision)
+  const currentCenter = getCellsCenter(currentCells);
+
+  // Normalize and flip the cells
   const normalizedCurrent = normalize(currentCells);
-  const flipped = flipH(normalizedCurrent);
-  return tryFindValidPosition(board, flipped, currentCells, player);
+  const flippedNormalized = flipH(normalizedCurrent);
+
+  // Get the center of the flipped normalized piece
+  const flippedNormalizedCenter = getCellsCenter(flippedNormalized);
+
+  // Calculate offset to position the flipped piece so its center matches the original center
+  const rowOffset = Math.round(currentCenter.row - flippedNormalizedCenter.row);
+  const colOffset = Math.round(currentCenter.col - flippedNormalizedCenter.col);
+
+  // Position the flipped piece centered on the original position
+  const centeredFlipped = translateCells(flippedNormalized, rowOffset, colOffset);
+
+  // If the centered position is valid, use it
+  if (isValidPlacement(board, centeredFlipped, player)) {
+    return centeredFlipped;
+  }
+
+  // Otherwise, search nearby for a valid position
+  return tryFindValidPosition(board, flippedNormalized, currentCells, player);
 }
 
 // Counter-clockwise rotation

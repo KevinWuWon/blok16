@@ -8,6 +8,7 @@ import {
   getCellsCenter,
   isValidPlacement,
   getValidAnchorsForPiece,
+  getFlippedOrientation,
   STARTING_POSITIONS,
 } from './validation'
 
@@ -309,5 +310,75 @@ describe('findBestPlacementForCursor', () => {
     // With preferred orientation 1, should pick second placement
     const result = findBestPlacementForCursor(5, 5, placements, 1)
     expect(result?.orientationIndex).toBe(1)
+  })
+})
+
+describe('getFlippedOrientation', () => {
+  it('flips P5 piece without shifting position (first move)', () => {
+    // First move scenario - piece must cover starting position
+    const board = createEmptyBoard()
+
+    // P5 covering starting position [9,9] at top-left of piece
+    // Original P5: XX / XX / X (bottom-left tail)
+    const originalCells: [number, number][] = [
+      [9, 9], [9, 10],    // top row covers starting position
+      [10, 9], [10, 10],  // middle row
+      [11, 9],            // bottom left
+    ]
+
+    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+
+    expect(flipped).not.toBeNull()
+
+    // The flipped piece should have the same center (or very close)
+    const originalCenter = getCellsCenter(originalCells)
+    const flippedCenter = getCellsCenter(flipped!)
+
+    // Row should be exactly the same
+    expect(flippedCenter.row).toBeCloseTo(originalCenter.row, 0)
+    // Column can shift by at most 0.5 (due to asymmetric piece)
+    expect(Math.abs(flippedCenter.col - originalCenter.col)).toBeLessThanOrEqual(0.5)
+  })
+
+  it('does not shift piece vertically when flipping', () => {
+    // First move scenario
+    const board = createEmptyBoard()
+
+    // P5 covering starting position
+    const originalCells: [number, number][] = [
+      [9, 9], [9, 10],    // XX
+      [10, 9], [10, 10],  // XX
+      [11, 9],            // X  (bottom-left tail)
+    ]
+
+    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+
+    expect(flipped).not.toBeNull()
+
+    // Row values should be the same - no vertical shift
+    const originalRows = originalCells.map(([r]) => r).sort((a, b) => a - b)
+    const flippedRows = flipped!.map(([r]) => r).sort((a, b) => a - b)
+
+    expect(flippedRows).toEqual(originalRows)
+  })
+
+  it('flips piece horizontally, moving tail from left to right', () => {
+    const board = createEmptyBoard()
+
+    // P5 with tail on the left
+    const originalCells: [number, number][] = [
+      [9, 9], [9, 10],
+      [10, 9], [10, 10],
+      [11, 9],            // tail on LEFT (col 9)
+    ]
+
+    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+
+    expect(flipped).not.toBeNull()
+
+    // After flip, tail should be on the RIGHT (col 10)
+    const tailCell = flipped!.find(([r]) => r === 11)
+    expect(tailCell).toBeDefined()
+    expect(tailCell![1]).toBe(10) // tail moved from col 9 to col 10
   })
 })
