@@ -470,9 +470,9 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <!-- Game in progress or finished -->
       <template v-else>
         <!-- Main game area -->
-        <div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden lg:min-h-0">
-          <!-- Desktop: Left sidebar - Your pieces -->
-          <aside class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-r border-default">
+        <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden md:min-h-0">
+          <!-- Desktop: Left sidebar - Your pieces (visible at md+) -->
+          <aside class="hidden md:flex md:flex-col flex-1 min-w-48 border-r border-default">
             <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               Your Pieces
             </h3>
@@ -555,7 +555,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             />
           </main>
 
-          <!-- Desktop: Right sidebar - Opponent pieces -->
+          <!-- Desktop: Right sidebar - Opponent pieces (visible at lg+ only) -->
           <aside class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-l border-default">
             <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               {{ opponentName }}'s Pieces
@@ -579,7 +579,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             <!-- Mobile: Select piece button -->
             <UButton
               v-if="isMyTurn && selectedPieceId === null"
-              class="lg:hidden"
+              class="md:hidden"
               @click="showPieceSheet = true"
             >
               Select Piece
