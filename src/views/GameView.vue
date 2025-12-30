@@ -368,23 +368,9 @@ function handleBoardClick(row: number, col: number) {
   );
 
   if (placements.length > 0) {
-    // If piece is already provisionally placed, try to keep its current orientation
-    let preferredOrientationIndex = currentOrientationIndex.value;
-
-    if (previewCells.value) {
-      // Find the actual orientation of the current preview cells
-      const orientations = getAllOrientationsForPiece(selectedPieceId.value);
-      const normalizedPreview = normalize(previewCells.value);
-      for (let i = 0; i < orientations.length; i++) {
-        if (cellsMatchUnordered(orientations[i], normalizedPreview)) {
-          preferredOrientationIndex = i;
-          break;
-        }
-      }
-    }
-
+    // Try to keep the current orientation if valid at this anchor
     const matchingOrientation = placements.find(
-      (p) => p.orientationIndex === preferredOrientationIndex,
+      (p) => p.orientationIndex === currentOrientationIndex.value,
     );
     const placement = matchingOrientation || placements[0];
     previewCells.value = placement.cells;
@@ -396,15 +382,16 @@ function rotatePiece(direction: "cw" | "ccw") {
   if (!game.value || !myColor.value || selectedPieceId.value === null) return;
 
   if (previewCells.value) {
-    const nextCells = getNextValidOrientation(
+    const result = getNextValidOrientation(
       game.value.board as Board,
       selectedPieceId.value,
       previewCells.value,
       myColor.value,
       direction,
     );
-    if (nextCells) {
-      previewCells.value = nextCells;
+    if (result) {
+      previewCells.value = result.cells;
+      currentOrientationIndex.value = result.orientationIndex;
     }
   } else {
     const orientations = getAllOrientationsForPiece(selectedPieceId.value);
@@ -423,13 +410,15 @@ function flipPieceAction() {
   if (!game.value || !myColor.value || selectedPieceId.value === null) return;
 
   if (previewCells.value) {
-    const flippedCells = getFlippedOrientation(
+    const result = getFlippedOrientation(
       game.value.board as Board,
+      selectedPieceId.value,
       previewCells.value,
       myColor.value,
     );
-    if (flippedCells) {
-      previewCells.value = flippedCells;
+    if (result) {
+      previewCells.value = result.cells;
+      currentOrientationIndex.value = result.orientationIndex;
     }
   }
 }
@@ -512,19 +501,6 @@ function getAllOrientationsForPiece(pieceId: number): [number, number][][] {
 function rotateCW(cells: [number, number][]): [number, number][] {
   const rotated = cells.map(([r, c]) => [c, -r] as [number, number]);
   return normalize(rotated);
-}
-
-// Check if two cell arrays match (ignoring order)
-function cellsMatchUnordered(
-  a: [number, number][],
-  b: [number, number][],
-): boolean {
-  if (a.length !== b.length) return false;
-  const setA = new Set(a.map(([r, c]) => `${r},${c}`));
-  for (const [r, c] of b) {
-    if (!setA.has(`${r},${c}`)) return false;
-  }
-  return true;
 }
 </script>
 

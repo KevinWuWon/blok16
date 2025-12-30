@@ -549,6 +549,7 @@ describe('getFlippedOrientation', () => {
   it('flips P5 piece without shifting position (first move)', () => {
     // First move scenario - piece must cover starting position
     const board = createEmptyBoard()
+    const pieceId = 13 // P5
 
     // P5 covering starting position [9,9] at top-left of piece
     // Original P5: XX / XX / X (bottom-left tail)
@@ -558,23 +559,27 @@ describe('getFlippedOrientation', () => {
       [11, 9],            // bottom left
     ]
 
-    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+    const result = getFlippedOrientation(board, pieceId, originalCells, 'orange')
 
-    expect(flipped).not.toBeNull()
+    expect(result).not.toBeNull()
 
     // The flipped piece should have the same center (or very close)
     const originalCenter = getCellsCenter(originalCells)
-    const flippedCenter = getCellsCenter(flipped!)
+    const flippedCenter = getCellsCenter(result!.cells)
 
     // Row should be exactly the same (9.8)
     expect(flippedCenter.row).toBe(originalCenter.row)
     // Original center.col = 9.4, flipped center.col = 9.6, diff = 0.2
     expect(flippedCenter.col).toBeCloseTo(9.6, 10)
+
+    // Should also return an orientation index
+    expect(typeof result!.orientationIndex).toBe('number')
   })
 
   it('does not shift piece vertically when flipping', () => {
     // First move scenario
     const board = createEmptyBoard()
+    const pieceId = 13 // P5
 
     // P5 covering starting position
     const originalCells: [number, number][] = [
@@ -583,19 +588,20 @@ describe('getFlippedOrientation', () => {
       [11, 9],            // X  (bottom-left tail)
     ]
 
-    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+    const result = getFlippedOrientation(board, pieceId, originalCells, 'orange')
 
-    expect(flipped).not.toBeNull()
+    expect(result).not.toBeNull()
 
     // Row values should be the same - no vertical shift
     const originalRows = originalCells.map(([r]) => r).sort((a, b) => a - b)
-    const flippedRows = flipped!.map(([r]) => r).sort((a, b) => a - b)
+    const flippedRows = result!.cells.map(([r]) => r).sort((a, b) => a - b)
 
     expect(flippedRows).toEqual(originalRows)
   })
 
   it('flips piece horizontally, moving tail from left to right', () => {
     const board = createEmptyBoard()
+    const pieceId = 13 // P5
 
     // P5 with tail on the left
     const originalCells: [number, number][] = [
@@ -604,12 +610,12 @@ describe('getFlippedOrientation', () => {
       [11, 9],            // tail on LEFT (col 9)
     ]
 
-    const flipped = getFlippedOrientation(board, originalCells, 'orange')
+    const result = getFlippedOrientation(board, pieceId, originalCells, 'orange')
 
-    expect(flipped).not.toBeNull()
+    expect(result).not.toBeNull()
 
     // After flip, tail should be on the RIGHT (col 10)
-    const tailCell = flipped!.find(([r]) => r === 11)
+    const tailCell = result!.cells.find(([r]) => r === 11)
     expect(tailCell).toBeDefined()
     expect(tailCell![1]).toBe(10) // tail moved from col 9 to col 10
   })
@@ -1116,17 +1122,20 @@ describe('getNextValidOrientation', () => {
     // I2 horizontal at starting position
     const currentCells: [number, number][] = [[9, 9], [9, 10]]
 
-    const rotated = getNextValidOrientation(board, 1, currentCells, 'orange', 'cw')
+    const result = getNextValidOrientation(board, 1, currentCells, 'orange', 'cw')
 
-    expect(rotated).not.toBeNull()
+    expect(result).not.toBeNull()
 
     // Should be vertical now - cells in same column
-    const cols = new Set(rotated!.map(([, c]) => c))
+    const cols = new Set(result!.cells.map(([, c]) => c))
     expect(cols.size).toBe(1)
 
     // Should still cover starting position
-    const coversStart = rotated!.some(([r, c]) => r === 9 && c === 9)
+    const coversStart = result!.cells.some(([r, c]) => r === 9 && c === 9)
     expect(coversStart).toBe(true)
+
+    // Should return the orientation index
+    expect(typeof result!.orientationIndex).toBe('number')
   })
 
   it('rotates I2 counter-clockwise', () => {
@@ -1134,10 +1143,11 @@ describe('getNextValidOrientation', () => {
 
     const currentCells: [number, number][] = [[9, 9], [9, 10]]
 
-    const rotated = getNextValidOrientation(board, 1, currentCells, 'orange', 'ccw')
+    const result = getNextValidOrientation(board, 1, currentCells, 'orange', 'ccw')
 
-    expect(rotated).not.toBeNull()
-    expect(rotated).toHaveLength(2)
+    expect(result).not.toBeNull()
+    expect(result!.cells).toHaveLength(2)
+    expect(typeof result!.orientationIndex).toBe('number')
   })
 
   it('returns null when piece has no valid rotation (completely blocked)', () => {
@@ -1172,9 +1182,9 @@ describe('getNextValidOrientation', () => {
 
     // Current cells represent where a piece "was" placed - for rotation purposes
     const currentCells: [number, number][] = [[5, 5], [5, 6]]
-    const rotated = getNextValidOrientation(board, 1, currentCells, 'orange', 'cw')
+    const result = getNextValidOrientation(board, 1, currentCells, 'orange', 'cw')
 
-    expect(rotated).toBeNull()
+    expect(result).toBeNull()
   })
 
   it('rotates asymmetric piece through multiple orientations', () => {
@@ -1188,10 +1198,11 @@ describe('getNextValidOrientation', () => {
       [9, 9], [10, 9], [11, 9], [11, 10]
     ]
 
-    const rotated = getNextValidOrientation(board, pieceId, currentCells, 'orange', 'cw')
+    const result = getNextValidOrientation(board, pieceId, currentCells, 'orange', 'cw')
 
-    expect(rotated).not.toBeNull()
-    expect(rotated).toHaveLength(4)
+    expect(result).not.toBeNull()
+    expect(result!.cells).toHaveLength(4)
+    expect(typeof result!.orientationIndex).toBe('number')
   })
 })
 

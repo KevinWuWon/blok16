@@ -250,13 +250,14 @@ export function determineWinner(
 
 // Get the next valid orientation for a piece at current position
 // Used when rotating during preview - only cycles through valid orientations
+// Returns both cells and orientation index for proper tracking
 export function getNextValidOrientation(
   board: Board,
   pieceId: number,
   currentCells: [number, number][],
   player: PlayerColor,
   direction: "cw" | "ccw"
-): [number, number][] | null {
+): { cells: [number, number][]; orientationIndex: number } | null {
   const piece = PIECES[pieceId];
   const allOrientations = getAllOrientations(piece.cells);
 
@@ -274,7 +275,18 @@ export function getNextValidOrientation(
   if (currentIndex === -1) {
     // Current orientation not found in standard orientations, use manual rotation
     const rotated = direction === "cw" ? rotateCW(currentCells) : rotateCCW(currentCells);
-    return tryFindValidPosition(board, rotated, currentCells, player);
+    const cells = tryFindValidPosition(board, rotated, currentCells, player);
+    if (cells) {
+      // Try to find orientation index for the rotated cells
+      const normalizedRotated = normalize(cells);
+      for (let i = 0; i < allOrientations.length; i++) {
+        if (cellsMatch(allOrientations[i], normalizedRotated)) {
+          return { cells, orientationIndex: i };
+        }
+      }
+      return { cells, orientationIndex: 0 }; // fallback
+    }
+    return null;
   }
 
   // Try subsequent orientations
@@ -288,7 +300,7 @@ export function getNextValidOrientation(
     const nextOrientation = allOrientations[nextIndex];
     const validPosition = tryFindValidPosition(board, nextOrientation, currentCells, player);
     if (validPosition) {
-      return validPosition;
+      return { cells: validPosition, orientationIndex: nextIndex };
     }
   }
 
@@ -296,11 +308,16 @@ export function getNextValidOrientation(
 }
 
 // Get the flipped (horizontally mirrored) version of the current placement
+// Returns both cells and orientation index for proper tracking
 export function getFlippedOrientation(
   board: Board,
+  pieceId: number,
   currentCells: [number, number][],
   player: PlayerColor
-): [number, number][] | null {
+): { cells: [number, number][]; orientationIndex: number } | null {
+  const piece = PIECES[pieceId];
+  const allOrientations = getAllOrientations(piece.cells);
+
   // Get the center of the current placement (using floats for precision)
   const currentCenter = getCellsCenter(currentCells);
 
@@ -318,13 +335,28 @@ export function getFlippedOrientation(
   // Position the flipped piece centered on the original position
   const centeredFlipped = translateCells(flippedNormalized, rowOffset, colOffset);
 
+  // Helper to find orientation index for cells
+  const findOrientationIndex = (cells: [number, number][]): number => {
+    const normalized = normalize(cells);
+    for (let i = 0; i < allOrientations.length; i++) {
+      if (cellsMatch(allOrientations[i], normalized)) {
+        return i;
+      }
+    }
+    return 0; // fallback
+  };
+
   // If the centered position is valid, use it
   if (isValidPlacement(board, centeredFlipped, player)) {
-    return centeredFlipped;
+    return { cells: centeredFlipped, orientationIndex: findOrientationIndex(centeredFlipped) };
   }
 
   // Otherwise, search nearby for a valid position
-  return tryFindValidPosition(board, flippedNormalized, currentCells, player);
+  const cells = tryFindValidPosition(board, flippedNormalized, currentCells, player);
+  if (cells) {
+    return { cells, orientationIndex: findOrientationIndex(cells) };
+  }
+  return null;
 }
 
 // Counter-clockwise rotation

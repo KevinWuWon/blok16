@@ -33,6 +33,8 @@ export function usePieceDrag(
   const cursorX = ref(0)
   const cursorY = ref(0)
   const originalAnchor = ref<[number, number] | null>(null)
+  // Store the orientation at drag start (currentOrientationIndex is now properly tracked)
+  const dragOrientationIndex = ref(0)
 
   // Calculate cell size based on board element
   const cellSize = computed(() => {
@@ -76,6 +78,10 @@ export function usePieceDrag(
     cursorX.value = event.clientX
     cursorY.value = event.clientY
 
+    // Capture the current orientation at drag start
+    // (currentOrientationIndex is now properly tracked by GameView)
+    dragOrientationIndex.value = currentOrientationIndex.value
+
     // Store original anchor (find from current preview cells)
     const firstCell = previewCells.value[0]
     originalAnchor.value = firstCell ? [firstCell[0], firstCell[1]] : null
@@ -98,9 +104,10 @@ export function usePieceDrag(
         playerColor.value
       )
 
-      // Only consider placements with the current orientation - dragging should never rotate
+      // Only consider placements with the orientation detected at drag start
+      // This ensures dragging never rotates the piece
       const matchingPlacements = placements.filter(
-        p => p.orientationIndex === currentOrientationIndex.value
+        p => p.orientationIndex === dragOrientationIndex.value
       )
 
       if (matchingPlacements.length > 0) {
@@ -109,7 +116,7 @@ export function usePieceDrag(
           gridPosition.value.row,
           gridPosition.value.col,
           matchingPlacements,
-          currentOrientationIndex.value
+          dragOrientationIndex.value
         )
 
         if (placement) {
@@ -135,7 +142,7 @@ export function usePieceDrag(
 
     isDragging.value = false
 
-    // Restore original position
+    // Restore original position with the orientation we started with
     if (originalAnchor.value && selectedPieceId.value !== null && playerColor.value) {
       const placements = findValidPlacementsAtAnchor(
         board.value,
@@ -144,7 +151,7 @@ export function usePieceDrag(
         originalAnchor.value[1],
         playerColor.value
       )
-      const matchingPlacement = placements.find(p => p.orientationIndex === currentOrientationIndex.value)
+      const matchingPlacement = placements.find(p => p.orientationIndex === dragOrientationIndex.value)
       if (matchingPlacement) {
         onPreviewUpdate(matchingPlacement.cells)
       }
