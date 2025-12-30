@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "vue@nuxt-skills": true,
+    "nuxt@nuxt-skills": true
+  }
+}
