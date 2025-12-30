@@ -16,6 +16,11 @@ import { PIECES, normalize, flipH } from "../../lib/pieces"
 import BoardComponent from '@/components/Board.vue'
 import PieceTray from '@/components/PieceTray.vue'
 import PieceMiniPreview from '@/components/PieceMiniPreview.vue'
+import RoleSelectionDialog from '@/components/RoleSelectionDialog.vue'
+import TakeoverConfirmDialog from '@/components/TakeoverConfirmDialog.vue'
+import { useGameRole, type GameRole } from '@/composables/useGameRole'
+
+type Player = string | { id: string; name: string }
 
 const route = useRoute()
 const code = computed(() => route.params.code as string)
@@ -32,13 +37,18 @@ onMounted(() => {
   playerId.value = id
 })
 
+// Game role from cookies
+const gameRole = computed(() => useGameRole(code.value))
+const role = computed(() => gameRole.value.role.value)
+const roleName = computed(() => gameRole.value.playerName.value)
+
 // Convex query for game state
 const { data: game, isPending: isLoading } = useConvexQuery(api.games.getGame, () => ({
   code: code.value,
 }))
 
 // Mutations
-const joinGameMutation = useConvexMutation(api.games.joinGame)
+const claimColorMutation = useConvexMutation(api.games.claimColor)
 const placePieceMutation = useConvexMutation(api.games.placePiece)
 const passTurnMutation = useConvexMutation(api.games.passTurn)
 
@@ -47,17 +57,32 @@ const selectedPieceId = ref<number | null>(null)
 const previewCells = ref<[number, number][] | null>(null)
 const currentOrientationIndex = ref(0)
 const showPieceSheet = ref(false)
-const joinError = ref<string | null>(null)
+
+// Dialog state
+const showRoleDialog = ref(false)
+const showTakeoverDialog = ref(false)
+const takeoverColor = ref<'blue' | 'orange'>('blue')
+const takeoverPlayerName = ref('')
+const pendingRoleSelection = ref<{ role: 'blue' | 'orange'; name: string } | null>(null)
+
+// Helper to get player name from legacy or new format
+function getPlayerName(player?: Player): string | null {
+  if (!player) return null
+  if (typeof player === 'string') return 'Anonymous'
+  return player.name
+}
 
 // Computed values
 const myColor = computed<PlayerColor | null>(() => {
-  if (!game.value || !playerId.value) return null
-  if (game.value.players.blue === playerId.value) return "blue"
-  if (game.value.players.orange === playerId.value) return "orange"
+  if (role.value === 'blue') return 'blue'
+  if (role.value === 'orange') return 'orange'
   return null
 })
 
+const isSpectator = computed(() => role.value === 'spectator')
+
 const isMyTurn = computed(() => {
+  if (isSpectator.value) return false
   return game.value?.currentTurn === myColor.value && game.value?.status === "playing"
 })
 
@@ -87,10 +112,13 @@ const canPass = computed(() => {
   return !hasValidMoves(game.value.board as Board, myPieces.value, myColor.value)
 })
 
-const needsToJoin = computed(() => {
-  if (!game.value || !playerId.value) return false
-  // Not already a player and game is waiting
-  return !myColor.value && game.value.status === "waiting"
+const blueName = computed(() => getPlayerName(game.value?.players.blue))
+const orangeName = computed(() => getPlayerName(game.value?.players.orange))
+
+const currentTurnName = computed(() => {
+  if (!game.value) return ''
+  if (game.value.currentTurn === 'blue') return blueName.value || 'Blue'
+  return orangeName.value || 'Orange'
 })
 
 const gameUrl = computed(() => {
@@ -98,18 +126,62 @@ const gameUrl = computed(() => {
   return `${window.location.origin}/game/${code.value}`
 })
 
-// Auto-join when arriving at game page
-watch([game, playerId], async () => {
-  if (needsToJoin.value && playerId.value) {
-    const result = await joinGameMutation.mutate({
-      code: code.value,
-      playerId: playerId.value,
-    })
-    if (!result?.success && result?.error) {
-      joinError.value = result.error
-    }
+// Show role dialog when no role is set
+watch([game, role], () => {
+  if (game.value && role.value === null) {
+    showRoleDialog.value = true
   }
 }, { immediate: true })
+
+// Handle role selection
+async function handleRoleSelect(selectedRole: 'blue' | 'orange' | 'spectator', name?: string) {
+  if (selectedRole === 'spectator') {
+    gameRole.value.setRole('spectator')
+    return
+  }
+
+  if (!name) return
+
+  const result = await claimColorMutation.mutate({
+    code: code.value,
+    playerId: playerId.value,
+    playerName: name,
+    color: selectedRole,
+  })
+
+  if (result?.success) {
+    gameRole.value.setRole(selectedRole, name)
+  } else if (result?.requiresConfirmation) {
+    // Need takeover confirmation
+    pendingRoleSelection.value = { role: selectedRole, name }
+    takeoverColor.value = selectedRole
+    takeoverPlayerName.value = result.currentPlayerName || 'Anonymous'
+    showTakeoverDialog.value = true
+  }
+}
+
+async function handleTakeoverConfirm() {
+  if (!pendingRoleSelection.value) return
+
+  const result = await claimColorMutation.mutate({
+    code: code.value,
+    playerId: playerId.value,
+    playerName: pendingRoleSelection.value.name,
+    color: pendingRoleSelection.value.role,
+    forceTakeover: true,
+  })
+
+  if (result?.success) {
+    gameRole.value.setRole(pendingRoleSelection.value.role, pendingRoleSelection.value.name)
+  }
+
+  pendingRoleSelection.value = null
+}
+
+function handleTakeoverCancel() {
+  pendingRoleSelection.value = null
+  showRoleDialog.value = true
+}
 
 // Actions
 function selectPiece(pieceId: number) {
@@ -547,6 +619,23 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           </div>
         </template>
       </USlideover>
+
+      <!-- Role selection dialog -->
+      <RoleSelectionDialog
+        v-model:open="showRoleDialog"
+        :blue-player="game?.players.blue"
+        :orange-player="game?.players.orange"
+        @select="handleRoleSelect"
+      />
+
+      <!-- Takeover confirmation dialog -->
+      <TakeoverConfirmDialog
+        v-model:open="showTakeoverDialog"
+        :current-player-name="takeoverPlayerName"
+        :color="takeoverColor"
+        @confirm="handleTakeoverConfirm"
+        @cancel="handleTakeoverCancel"
+      />
     </template>
   </div>
 </template>

@@ -11,6 +11,21 @@ const STARTING_POSITIONS = {
 
 type PlayerColor = "blue" | "orange";
 type Board = number[][];
+type Player = string | { id: string; name: string };
+
+// Helper to extract player ID from legacy or new format
+function normalizePlayer(player: Player | undefined): string | undefined {
+  if (!player) return undefined;
+  if (typeof player === "string") return player;
+  return player.id;
+}
+
+// Helper to get player name (returns "Anonymous" for legacy format)
+function getPlayerName(player: Player | undefined): string | undefined {
+  if (!player) return undefined;
+  if (typeof player === "string") return "Anonymous";
+  return player.name;
+}
 
 // All 21 piece definitions
 const PIECES = [
@@ -241,7 +256,11 @@ export const getGame = query({
 // Mutations
 
 export const createGame = mutation({
-  args: { playerId: v.string() },
+  args: {
+    playerId: v.string(),
+    playerName: v.optional(v.string()),
+    playerColor: v.optional(v.union(v.literal("blue"), v.literal("orange"))),
+  },
   handler: async (ctx, args) => {
     // Generate unique code
     let code: string;
@@ -255,11 +274,18 @@ export const createGame = mutation({
     } while (existing);
 
     const allPieces = Array.from({ length: 21 }, (_, i) => i);
+    const color = args.playerColor || "blue";
+    const player = args.playerName
+      ? { id: args.playerId, name: args.playerName }
+      : args.playerId;
 
     const gameId = await ctx.db.insert("games", {
       code,
       board: createEmptyBoard(),
-      players: { blue: args.playerId, orange: undefined },
+      players: {
+        blue: color === "blue" ? player : undefined,
+        orange: color === "orange" ? player : undefined,
+      },
       pieces: { blue: allPieces, orange: [...allPieces] },
       currentTurn: "blue",
       status: "waiting",
@@ -268,12 +294,12 @@ export const createGame = mutation({
       createdAt: Date.now(),
     });
 
-    return { code, gameId };
+    return { code, gameId, color };
   },
 });
 
 export const joinGame = mutation({
-  args: { code: v.string(), playerId: v.string() },
+  args: { code: v.string(), playerId: v.string(), playerName: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const game = await ctx.db
       .query("games")
@@ -288,7 +314,7 @@ export const joinGame = mutation({
       return { success: false, error: "Game already started" };
     }
 
-    if (game.players.blue === args.playerId) {
+    if (normalizePlayer(game.players.blue) === args.playerId) {
       // Already the blue player
       return { success: true, color: "blue" as const };
     }
@@ -297,12 +323,87 @@ export const joinGame = mutation({
       return { success: false, error: "Game is full" };
     }
 
+    const player = args.playerName
+      ? { id: args.playerId, name: args.playerName }
+      : args.playerId;
+
     await ctx.db.patch(game._id, {
-      players: { ...game.players, orange: args.playerId },
+      players: { ...game.players, orange: player },
       status: "playing",
     });
 
     return { success: true, color: "orange" as const };
+  },
+});
+
+export const claimColor = mutation({
+  args: {
+    code: v.string(),
+    playerId: v.string(),
+    playerName: v.string(),
+    color: v.union(v.literal("blue"), v.literal("orange")),
+    forceTakeover: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      return { success: false, error: "Game not found" };
+    }
+
+    const currentPlayer = game.players[args.color];
+    const currentPlayerId = normalizePlayer(currentPlayer);
+    const currentPlayerName = getPlayerName(currentPlayer);
+
+    // Check if this player already has this color
+    if (currentPlayerId === args.playerId) {
+      return { success: true, alreadyClaimed: true };
+    }
+
+    // Check if color is taken by someone else
+    if (currentPlayer && !args.forceTakeover) {
+      return {
+        success: false,
+        requiresConfirmation: true,
+        currentPlayerName: currentPlayerName || "Anonymous",
+      };
+    }
+
+    // Check if player is already the other color
+    const otherColor = args.color === "blue" ? "orange" : "blue";
+    const otherPlayer = game.players[otherColor];
+    if (normalizePlayer(otherPlayer) === args.playerId) {
+      // Player is switching colors - clear their old slot
+      await ctx.db.patch(game._id, {
+        players: {
+          ...game.players,
+          [otherColor]: undefined,
+          [args.color]: { id: args.playerId, name: args.playerName },
+        },
+      });
+      return { success: true };
+    }
+
+    const newPlayer = { id: args.playerId, name: args.playerName };
+    const updatedPlayers = {
+      ...game.players,
+      [args.color]: newPlayer,
+    };
+
+    // Check if both players are now claimed to start the game
+    const blueId = normalizePlayer(updatedPlayers.blue);
+    const orangeId = normalizePlayer(updatedPlayers.orange);
+    const shouldStartGame = blueId && orangeId && blueId !== orangeId;
+
+    await ctx.db.patch(game._id, {
+      players: updatedPlayers,
+      status: shouldStartGame ? "playing" : game.status,
+    });
+
+    return { success: true, gameStarted: shouldStartGame };
   },
 });
 
@@ -329,9 +430,9 @@ export const placePiece = mutation({
 
     // Determine player color
     let playerColor: PlayerColor;
-    if (game.players.blue === args.playerId) {
+    if (normalizePlayer(game.players.blue) === args.playerId) {
       playerColor = "blue";
-    } else if (game.players.orange === args.playerId) {
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
       playerColor = "orange";
     } else {
       return { success: false, error: "Not a player in this game" };
@@ -418,9 +519,9 @@ export const passTurn = mutation({
     }
 
     let playerColor: PlayerColor;
-    if (game.players.blue === args.playerId) {
+    if (normalizePlayer(game.players.blue) === args.playerId) {
       playerColor = "blue";
-    } else if (game.players.orange === args.playerId) {
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
       playerColor = "orange";
     } else {
       return { success: false, error: "Not a player in this game" };

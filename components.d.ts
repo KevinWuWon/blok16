@@ -14,13 +14,17 @@ declare module 'vue' {
     Board: typeof import('./src/components/Board.vue')['default']
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
+    RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TakeoverConfirmDialog: typeof import('./src/components/TakeoverConfirmDialog.vue')['default']
     UApp: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UBadge: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
     UButton: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UFormField: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
     UIcon: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
+    UModal: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     USlideover: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Slideover.vue')['default']
   }
 }

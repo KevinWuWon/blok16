@@ -6,8 +6,14 @@ export default defineSchema({
     code: v.string(),
     board: v.array(v.array(v.number())),
     players: v.object({
-      blue: v.optional(v.string()),
-      orange: v.optional(v.string()),
+      blue: v.optional(v.union(
+        v.string(),  // Legacy UUID only
+        v.object({ id: v.string(), name: v.string() })
+      )),
+      orange: v.optional(v.union(
+        v.string(),
+        v.object({ id: v.string(), name: v.string() })
+      )),
     }),
     pieces: v.object({
       blue: v.array(v.number()),
