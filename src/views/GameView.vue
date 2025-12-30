@@ -59,6 +59,7 @@ const selectedPieceId = ref<number | null>(null)
 const previewCells = ref<[number, number][] | null>(null)
 const currentOrientationIndex = ref(0)
 const showMobileTray = ref(false)
+const showOpponentPiecesMobile = ref(false)
 
 // Board component ref for drag and drop
 const boardComponentRef = ref<InstanceType<typeof BoardComponent> | null>(null)
@@ -496,7 +497,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <!-- Game in progress or finished -->
       <template v-else>
         <!-- Main game area -->
-        <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden md:min-h-0">
+        <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0">
           <!-- Desktop: Left sidebar - Your pieces (visible at md+) -->
           <aside class="hidden md:flex md:flex-col flex-1 min-w-48 border-r border-default">
             <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
@@ -593,16 +594,54 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             <!-- Mobile: Inline piece tray (inside main for proper flex layout) -->
             <div
               v-if="showMobileTray"
-              class="md:hidden w-full flex-1 overflow-y-auto border-t border-default mt-2 min-h-0"
+              class="md:hidden w-full flex-1 flex flex-col border-t border-default mt-2 min-h-0"
             >
-              <PieceTray
-                :pieces="myPieces"
-                :player-color="myColor || 'blue'"
-                :selected-piece-id="selectedPieceId"
-                :disabled="!isMyTurn"
-                horizontal
-                @select="selectPiece"
-              />
+              <!-- Tabs -->
+              <div class="flex border-b border-default shrink-0">
+                <button
+                  :class="[
+                    'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
+                    !showOpponentPiecesMobile
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-default-500 hover:text-default-700'
+                  ]"
+                  @click="showOpponentPiecesMobile = false"
+                >
+                  Mine
+                </button>
+                <button
+                  :class="[
+                    'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
+                    showOpponentPiecesMobile
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-default-500 hover:text-default-700'
+                  ]"
+                  @click="showOpponentPiecesMobile = true"
+                >
+                  {{ opponentName }}
+                </button>
+              </div>
+              <!-- Tab content -->
+              <div class="flex-1 overflow-y-auto">
+                <PieceTray
+                  v-if="!showOpponentPiecesMobile"
+                  :pieces="myPieces"
+                  :player-color="myColor || 'blue'"
+                  :selected-piece-id="selectedPieceId"
+                  :disabled="!isMyTurn"
+                  horizontal
+                  @select="selectPiece"
+                />
+                <PieceTray
+                  v-else
+                  :pieces="opponentPieces"
+                  :player-color="myColor === 'blue' ? 'orange' : 'blue'"
+                  :selected-piece-id="null"
+                  :disabled="true"
+                  horizontal
+                  @select="() => {}"
+                />
+              </div>
             </div>
           </main>
 
