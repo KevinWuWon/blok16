@@ -58,9 +58,11 @@ const previewCells = ref<[number, number][] | null>(null)
 const currentOrientationIndex = ref(0)
 const showPieceSheet = ref(false)
 
+// Game flow state machine
+type GameFlowState = 'loading' | 'selecting' | 'claiming' | 'confirming' | 'ready'
+const flowState = ref<GameFlowState>('loading')
+
 // Dialog state
-const showRoleDialog = ref(false)
-const showTakeoverDialog = ref(false)
 const takeoverColor = ref<'blue' | 'orange'>('blue')
 const takeoverPlayerName = ref('')
 const pendingRoleSelection = ref<{ role: 'blue' | 'orange'; name: string } | null>(null)
@@ -126,22 +128,36 @@ const gameUrl = computed(() => {
   return `${window.location.origin}/game/${code.value}`
 })
 
-// Show role dialog when no role is set
-watch([game, role], () => {
-  if (game.value && role.value === null) {
-    showRoleDialog.value = true
+// Manage flow state transitions
+watch([game, role, isLoading], () => {
+  if (isLoading.value || !game.value) {
+    flowState.value = 'loading'
+    return
+  }
+
+  if (role.value !== null) {
+    flowState.value = 'ready'
+    return
+  }
+
+  // Only trigger 'selecting' if we aren't already in a transition state
+  if (flowState.value === 'loading' || flowState.value === 'ready') {
+    flowState.value = 'selecting'
   }
 }, { immediate: true })
 
 // Handle role selection
 async function handleRoleSelect(selectedRole: 'blue' | 'orange' | 'spectator', name?: string) {
   if (selectedRole === 'spectator') {
+    flowState.value = 'claiming'
     gameRole.value.setRole('spectator')
+    flowState.value = 'ready'
     return
   }
 
   if (!name) return
 
+  flowState.value = 'claiming'
   const result = await claimColorMutation.mutate({
     code: code.value,
     playerId: playerId.value,
@@ -151,18 +167,23 @@ async function handleRoleSelect(selectedRole: 'blue' | 'orange' | 'spectator', n
 
   if (result?.success) {
     gameRole.value.setRole(selectedRole, name)
+    flowState.value = 'ready'
   } else if (result?.requiresConfirmation) {
     // Need takeover confirmation
     pendingRoleSelection.value = { role: selectedRole, name }
     takeoverColor.value = selectedRole
     takeoverPlayerName.value = result.currentPlayerName || 'Anonymous'
-    showTakeoverDialog.value = true
+    flowState.value = 'confirming'
+  } else {
+    // If error, go back to selecting
+    flowState.value = 'selecting'
   }
 }
 
 async function handleTakeoverConfirm() {
   if (!pendingRoleSelection.value) return
 
+  flowState.value = 'claiming'
   const result = await claimColorMutation.mutate({
     code: code.value,
     playerId: playerId.value,
@@ -173,6 +194,9 @@ async function handleTakeoverConfirm() {
 
   if (result?.success) {
     gameRole.value.setRole(pendingRoleSelection.value.role, pendingRoleSelection.value.name)
+    flowState.value = 'ready'
+  } else {
+    flowState.value = 'selecting'
   }
 
   pendingRoleSelection.value = null
@@ -180,7 +204,7 @@ async function handleTakeoverConfirm() {
 
 function handleTakeoverCancel() {
   pendingRoleSelection.value = null
-  showRoleDialog.value = true
+  flowState.value = 'selecting'
 }
 
 // Actions
@@ -622,15 +646,16 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
       <!-- Role selection dialog -->
       <RoleSelectionDialog
-        v-model:open="showRoleDialog"
+        :open="flowState === 'selecting'"
         :blue-player="game?.players.blue"
         :orange-player="game?.players.orange"
+        @update:open="(val) => !val && (flowState = 'ready')"
         @select="handleRoleSelect"
       />
 
       <!-- Takeover confirmation dialog -->
       <TakeoverConfirmDialog
-        v-model:open="showTakeoverDialog"
+        :open="flowState === 'confirming'"
         :current-player-name="takeoverPlayerName"
         :color="takeoverColor"
         @confirm="handleTakeoverConfirm"
