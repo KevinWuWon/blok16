@@ -57,7 +57,7 @@ function isCellFilled(row: number, col: number): boolean {
       v-for="cell in gridCells"
       :key="cell.key"
       :class="[
-        'aspect-square rounded-sm',
+        'aspect-square',
         isCellFilled(cell.row, cell.col)
           ? playerColor === 'blue' ? 'bg-blue-500' : 'bg-orange-500'
           : 'bg-transparent'

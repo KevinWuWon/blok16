@@ -95,8 +95,9 @@ function handleCellClick(row: number, col: number) {
     class="grid rounded-lg shadow-lg ring-2 ring-default-400 dark:ring-default-500 overflow-hidden"
     :style="{
       gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
-      width: 'min(90vw, 90vh, 560px)',
-      aspectRatio: '1'
+      height: 'min(calc(100dvh - 180px), 560px)',
+      aspectRatio: '1',
+      width: 'auto'
     }"
   >
     <div

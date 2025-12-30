@@ -472,7 +472,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
         <!-- Main game area -->
         <div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden lg:min-h-0">
           <!-- Desktop: Left sidebar - Your pieces -->
-          <aside class="hidden lg:flex lg:flex-col w-48 border-r border-default">
+          <aside class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-r border-default">
             <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               Your Pieces
             </h3>
@@ -482,13 +482,14 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 :player-color="myColor || 'blue'"
                 :selected-piece-id="selectedPieceId"
                 :disabled="!isMyTurn"
+                horizontal
                 @select="selectPiece"
               />
             </div>
           </aside>
 
           <!-- Board area -->
-          <main class="flex-1 flex flex-col items-center justify-center p-4 overflow-auto">
+          <main class="shrink-0 flex flex-col items-center justify-center p-4 overflow-auto">
             <!-- Game status / Turn indicator -->
             <div class="mb-8">
               <template v-if="game.status === 'finished'">
@@ -555,7 +556,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           </main>
 
           <!-- Desktop: Right sidebar - Opponent pieces -->
-          <aside class="hidden lg:flex lg:flex-col w-48 border-l border-default">
+          <aside class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-l border-default">
             <h3 class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0">
               {{ opponentName }}'s Pieces
             </h3>
@@ -565,6 +566,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 :player-color="myColor === 'blue' ? 'orange' : 'blue'"
                 :selected-piece-id="null"
                 :disabled="true"
+                horizontal
                 @select="() => {}"
               />
             </div>
