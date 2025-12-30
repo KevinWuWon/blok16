@@ -58,7 +58,7 @@ const passTurnMutation = useConvexMutation(api.games.passTurn)
 const selectedPieceId = ref<number | null>(null)
 const previewCells = ref<[number, number][] | null>(null)
 const currentOrientationIndex = ref(0)
-const showPieceSheet = ref(false)
+const showMobileTray = ref(false)
 
 // Board component ref for drag and drop
 const boardComponentRef = ref<InstanceType<typeof BoardComponent> | null>(null)
@@ -244,7 +244,7 @@ function selectPiece(pieceId: number) {
   selectedPieceId.value = pieceId
   previewCells.value = null
   currentOrientationIndex.value = 0
-  showPieceSheet.value = false
+  // Keep tray open on mobile so user can see piece controls
 }
 
 function clearSelection() {
@@ -328,6 +328,7 @@ async function confirmPlacement() {
 
   if (result?.success) {
     clearSelection()
+    showMobileTray.value = false
   }
 }
 
@@ -427,8 +428,11 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
     <!-- Game view -->
     <template v-else>
-      <!-- Header -->
-      <header class="flex items-center justify-between px-4 py-2 border-b border-default shrink-0">
+      <!-- Header (hidden on mobile when piece tray is open) -->
+      <header
+        class="items-center justify-between px-4 py-2 border-b border-default shrink-0"
+        :class="showMobileTray ? 'hidden md:flex' : 'flex'"
+      >
         <div class="flex items-center gap-2">
           <RouterLink
             to="/"
@@ -511,9 +515,15 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           </aside>
 
           <!-- Board area -->
-          <main class="shrink-0 flex flex-col items-center justify-center p-4 overflow-auto">
-            <!-- Game status / Turn indicator -->
-            <div class="mb-8">
+          <main
+            class="flex-1 flex flex-col items-center p-4 overflow-hidden min-h-0"
+            :class="showMobileTray ? 'justify-start pt-2' : 'justify-center'"
+          >
+            <!-- Game status / Turn indicator (hidden on mobile when piece tray is open) -->
+            <div
+              class="mb-8"
+              :class="{ 'hidden md:block': showMobileTray }"
+            >
               <template v-if="game.status === 'finished'">
                 <div class="text-2xl font-bold text-center">
                   <span
@@ -575,9 +585,25 @@ function rotateCW(cells: [number, number][]): [number, number][] {
               :valid-anchors="selectedPieceId !== null ? validAnchorsForSelectedPiece : validAnchors"
               :show-anchors="isMyTurn && selectedPieceId !== null"
               :is-dragging="isDragging"
+              :compact="showMobileTray"
               @cell-click="handleBoardClick"
               @drag-start="startDrag"
             />
+
+            <!-- Mobile: Inline piece tray (inside main for proper flex layout) -->
+            <div
+              v-if="showMobileTray"
+              class="md:hidden w-full flex-1 overflow-y-auto border-t border-default mt-2 min-h-0"
+            >
+              <PieceTray
+                :pieces="myPieces"
+                :player-color="myColor || 'blue'"
+                :selected-piece-id="selectedPieceId"
+                :disabled="!isMyTurn"
+                horizontal
+                @select="selectPiece"
+              />
+            </div>
           </main>
 
           <!-- Desktop: Right sidebar - Opponent pieces (visible at lg+ only) -->
@@ -603,11 +629,21 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           <div class="flex items-center justify-center gap-2 flex-wrap">
             <!-- Mobile: Select piece button -->
             <UButton
-              v-if="isMyTurn && selectedPieceId === null"
+              v-if="isMyTurn && selectedPieceId === null && !showMobileTray"
               class="md:hidden"
-              @click="showPieceSheet = true"
+              @click="showMobileTray = true"
             >
               Select Piece
+            </UButton>
+
+            <!-- Mobile: Hide tray button (when tray is visible but no piece selected) -->
+            <UButton
+              v-if="showMobileTray && selectedPieceId === null"
+              class="md:hidden"
+              variant="outline"
+              @click="showMobileTray = false"
+            >
+              Hide
             </UButton>
 
             <!-- Selected piece controls -->
@@ -660,13 +696,13 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 </UButton>
               </template>
 
-              <!-- Change piece button -->
+              <!-- Change piece button (shows tray on mobile/tablet) -->
               <UButton
-                v-if="!previewCells"
+                v-if="!previewCells && !showMobileTray"
                 variant="ghost"
                 size="sm"
                 class="lg:hidden"
-                @click="showPieceSheet = true"
+                @click="showMobileTray = true"
               >
                 Change
               </UButton>
@@ -674,7 +710,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 v-if="!previewCells"
                 variant="ghost"
                 size="sm"
-                @click="clearSelection"
+                @click="clearSelection(); showMobileTray = false"
               >
                 Deselect
               </UButton>
@@ -692,26 +728,6 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           </div>
         </footer>
       </template>
-
-      <!-- Mobile piece selection sheet -->
-      <USlideover
-        v-model:open="showPieceSheet"
-        side="bottom"
-        title="Select a Piece"
-      >
-        <template #body>
-          <div class="p-4">
-            <PieceTray
-              :pieces="myPieces"
-              :player-color="myColor || 'blue'"
-              :selected-piece-id="selectedPieceId"
-              :disabled="!isMyTurn"
-              horizontal
-              @select="selectPiece"
-            />
-          </div>
-        </template>
-      </USlideover>
 
       <!-- Role selection dialog -->
       <RoleSelectionDialog
