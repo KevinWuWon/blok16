@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@convex-vue/core':
-        specifier: ^0.0.4
-        version: 0.0.4(typescript@5.9.3)
       '@iconify-json/lucide':
         specifier: ^1.2.82
         version: 1.2.82
@@ -23,6 +20,9 @@ importers:
       convex:
         specifier: ^1.31.2
         version: 1.31.2
+      convex-vue:
+        specifier: ^0.1.5
+        version: 0.1.5(convex@1.31.2)(vue@3.5.26(typescript@5.9.3))
       nuxt:
         specifier: ^4.2.2
         version: 4.2.2(@parcel/watcher@2.5.1)(@vue/compiler-sfc@3.5.26)(cac@6.7.14)(db0@0.3.4)(eslint@9.39.2(jiti@2.6.1))(ioredis@5.8.2)(lightningcss@1.30.2)(magicast@0.5.1)(optionator@0.9.4)(rollup@4.54.0)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.0(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(vue-tsc@3.2.1(typescript@5.9.3))(yaml@2.8.2)
@@ -206,9 +206,6 @@ packages:
   '@cloudflare/kv-asset-handler@0.4.1':
     resolution: {integrity: sha512-Nu8ahitGFFJztxUml9oD/DLb7Z28C8cd8F46IVQ7y5Btz575pvMY8AqZsXkX7Gds29eCKdMgIHjIvzskHgPSFg==}
     engines: {node: '>=18.0.0'}
-
-  '@convex-vue/core@0.0.4':
-    resolution: {integrity: sha512-MCCNt1VUDsluu7i+7Hn6JPxhy6aDJb3mBxpWfbc8DOCdRK7HYS6WuCD+sy+UjyQa9EWTAtKCxTiZeF+SLdeIBg==}
 
   '@dxup/nuxt@0.2.2':
     resolution: {integrity: sha512-RNpJjDZs9+JcT9N87AnOuHsNM75DEd58itADNd/s1LIF6BZbTLZV0xxilJZb55lntn4TYvscTaXLCBX2fq9CXg==}
@@ -2569,6 +2566,13 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  convex-vue@0.1.5:
+    resolution: {integrity: sha512-0kyM4rkGzDDW9mrK4O3q9cCByzezBm6cnjfeB+i5Wc/BNKfXeAWKFyOKvAuCqjC8WGCbUG/OtbMFbUlWT3dD3g==}
+    engines: {node: '>=22.14.0'}
+    peerDependencies:
+      convex: '>=1.24.0'
+      vue: '>=3.5.0'
 
   convex@1.31.2:
     resolution: {integrity: sha512-RFuJOwlL2bM5X63egvBI5ZZZH6wESREpAbHsLjODxzDeJuewTLKrEnbvHV/NWp1uJYpgEFJziuGHmZ0tnAmmJg==}
@@ -5363,19 +5367,6 @@ snapshots:
     dependencies:
       mime: 3.0.0
 
-  '@convex-vue/core@0.0.4(typescript@5.9.3)':
-    dependencies:
-      '@vueuse/core': 10.11.1(vue@3.5.26(typescript@5.9.3))
-      convex: 1.31.2
-      vue: 3.5.26(typescript@5.9.3)
-      vue-router: 4.6.4(vue@3.5.26(typescript@5.9.3))
-    transitivePeerDependencies:
-      - '@auth0/auth0-react'
-      - '@clerk/clerk-react'
-      - '@vue/composition-api'
-      - react
-      - typescript
-
   '@dxup/nuxt@0.2.2(magicast@0.5.1)':
     dependencies:
       '@dxup/unimport': 0.1.2
@@ -7812,6 +7803,13 @@ snapshots:
   consola@3.4.2: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-vue@0.1.5(convex@1.31.2)(vue@3.5.26(typescript@5.9.3)):
+    dependencies:
+      consola: 3.4.2
+      convex: 1.31.2
+      std-env: 3.10.0
+      vue: 3.5.26(typescript@5.9.3)
 
   convex@1.31.2:
     dependencies:

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useConvexMutation } from "@convex-vue/core";
+import { useConvexMutation } from "convex-vue";
 import { api } from "../../convex/_generated/api";
 
 const router = useRouter();

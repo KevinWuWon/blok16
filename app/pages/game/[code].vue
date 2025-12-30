@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useConvexQuery, useConvexMutation } from "@convex-vue/core";
+import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import {
