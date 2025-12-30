@@ -60,13 +60,8 @@ function getCellClass(row: number, col: number): string {
     classes.push(
       props.previewColor === "blue" ? "bg-blue-500/50" : "bg-orange-500/50",
     )
-  } else if (isValidAnchor(row, col)) {
-    classes.push(
-      "cursor-pointer",
-      props.previewColor === "blue" ? "bg-blue-500/20" : "bg-orange-500/20",
-      "hover:bg-opacity-40"
-    )
   } else {
+    // Empty cell - check for starting position styling
     const start = isStartingPosition(row, col)
     if (start) {
       classes.push(
@@ -77,6 +72,11 @@ function getCellClass(row: number, col: number): string {
       )
     } else {
       classes.push("bg-default-50 dark:bg-default-900")
+    }
+
+    // Add cursor pointer if it's a valid anchor
+    if (isValidAnchor(row, col)) {
+      classes.push("cursor-pointer")
     }
   }
 
@@ -104,7 +104,13 @@ function handleCellClick(row: number, col: number) {
       v-for="cell in cells"
       :key="cell.key"
       :class="getCellClass(cell.row, cell.col)"
+      class="relative"
       @click="handleCellClick(cell.row, cell.col)"
-    />
+    >
+      <div
+        v-if="isValidAnchor(cell.row, cell.col)"
+        class="absolute inset-0 m-auto w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"
+      />
+    </div>
   </div>
 </template>
