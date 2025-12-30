@@ -3,7 +3,6 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useConvexQuery, useConvexMutation } from "convex-vue"
 import { api } from "../../convex/_generated/api"
-import type { Doc } from "../../convex/_generated/dataModel"
 import {
   findCornerAnchors,
   findValidPlacementsAtAnchor,
@@ -13,12 +12,10 @@ import {
   type PlayerColor,
   type Board,
 } from "../../lib/validation"
-import { PIECES, flipH, normalize } from "../../lib/pieces"
+import { PIECES, normalize } from "../../lib/pieces"
 import BoardComponent from '@/components/Board.vue'
 import PieceTray from '@/components/PieceTray.vue'
 import PieceMiniPreview from '@/components/PieceMiniPreview.vue'
-
-type GameState = Doc<"games">
 
 const route = useRoute()
 const code = computed(() => route.params.code as string)
@@ -88,11 +85,6 @@ const validAnchorsForSelectedPiece = computed(() => {
 const canPass = computed(() => {
   if (!game.value || !myColor.value || !isMyTurn.value) return false
   return !hasValidMoves(game.value.board as Board, myPieces.value, myColor.value)
-})
-
-const hasAnyValidMoves = computed(() => {
-  if (!game.value || !myColor.value) return true
-  return hasValidMoves(game.value.board as Board, myPieces.value, myColor.value)
 })
 
 const needsToJoin = computed(() => {
@@ -281,15 +273,30 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 <template>
   <div class="min-h-screen flex flex-col">
     <!-- Loading state -->
-    <div v-if="isLoading" class="flex-1 flex items-center justify-center">
-      <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin" />
+    <div
+      v-if="isLoading"
+      class="flex-1 flex items-center justify-center"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="w-8 h-8 animate-spin"
+      />
     </div>
 
     <!-- Game not found -->
-    <div v-else-if="!game" class="flex-1 flex flex-col items-center justify-center p-4">
-      <h1 class="text-2xl font-bold mb-4">Game Not Found</h1>
-      <p class="text-muted mb-4">The game code "{{ code }}" doesn't exist.</p>
-      <UButton to="/">Back to Home</UButton>
+    <div
+      v-else-if="!game"
+      class="flex-1 flex flex-col items-center justify-center p-4"
+    >
+      <h1 class="text-2xl font-bold mb-4">
+        Game Not Found
+      </h1>
+      <p class="text-muted mb-4">
+        The game code "{{ code }}" doesn't exist.
+      </p>
+      <UButton to="/">
+        Back to Home
+      </UButton>
     </div>
 
     <!-- Game view -->
@@ -297,8 +304,18 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <!-- Header -->
       <header class="flex items-center justify-between p-4 border-b border-default">
         <div class="flex items-center gap-2">
-          <RouterLink to="/" class="text-lg font-bold">Blokus Duo</RouterLink>
-          <UBadge variant="subtle" color="neutral">{{ code }}</UBadge>
+          <RouterLink
+            to="/"
+            class="text-lg font-bold"
+          >
+            Blokus Duo
+          </RouterLink>
+          <UBadge
+            variant="subtle"
+            color="neutral"
+          >
+            {{ code }}
+          </UBadge>
         </div>
         <UButton
           v-if="game.status === 'waiting'"
@@ -312,14 +329,31 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       </header>
 
       <!-- Waiting for opponent -->
-      <div v-if="game.status === 'waiting'" class="flex-1 flex flex-col items-center justify-center p-4">
+      <div
+        v-if="game.status === 'waiting'"
+        class="flex-1 flex flex-col items-center justify-center p-4"
+      >
         <div class="text-center space-y-4">
-          <UIcon name="i-lucide-users" class="w-12 h-12 mx-auto text-muted" />
-          <h2 class="text-xl font-semibold">Waiting for opponent...</h2>
-          <p class="text-muted">Share this link with a friend:</p>
+          <UIcon
+            name="i-lucide-users"
+            class="w-12 h-12 mx-auto text-muted"
+          />
+          <h2 class="text-xl font-semibold">
+            Waiting for opponent...
+          </h2>
+          <p class="text-muted">
+            Share this link with a friend:
+          </p>
           <div class="flex items-center gap-2 justify-center">
-            <UInput :value="gameUrl" readonly class="w-64" />
-            <UButton icon="i-lucide-copy" @click="copyLink" />
+            <UInput
+              :value="gameUrl"
+              readonly
+              class="w-64"
+            />
+            <UButton
+              icon="i-lucide-copy"
+              @click="copyLink"
+            />
           </div>
         </div>
       </div>
@@ -328,15 +362,27 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <template v-else>
         <!-- Game status bar -->
         <div class="px-4 py-2 border-b border-default">
-          <div v-if="game.status === 'finished'" class="text-center">
-            <span v-if="game.winner === 'draw'" class="font-semibold">Game Over - Draw!</span>
-            <span v-else class="font-semibold">
+          <div
+            v-if="game.status === 'finished'"
+            class="text-center"
+          >
+            <span
+              v-if="game.winner === 'draw'"
+              class="font-semibold"
+            >Game Over - Draw!</span>
+            <span
+              v-else
+              class="font-semibold"
+            >
               <span :class="game.winner === 'blue' ? 'text-blue-500' : 'text-orange-500'">
                 {{ game.winner === myColor ? 'You win!' : 'You lose!' }}
               </span>
             </span>
           </div>
-          <div v-else class="flex items-center justify-center gap-2">
+          <div
+            v-else
+            class="flex items-center justify-center gap-2"
+          >
             <div
               class="w-3 h-3 rounded-full"
               :class="game.currentTurn === 'blue' ? 'bg-blue-500' : 'bg-orange-500'"
@@ -351,7 +397,9 @@ function rotateCW(cells: [number, number][]): [number, number][] {
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <!-- Desktop: Left sidebar - Your pieces -->
           <aside class="hidden lg:block w-48 border-r border-default overflow-y-auto p-2">
-            <h3 class="text-sm font-semibold mb-2 px-2">Your Pieces</h3>
+            <h3 class="text-sm font-semibold mb-2 px-2">
+              Your Pieces
+            </h3>
             <PieceTray
               :pieces="myPieces"
               :player-color="myColor || 'blue'"
@@ -375,7 +423,9 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
           <!-- Desktop: Right sidebar - Opponent pieces -->
           <aside class="hidden lg:block w-48 border-l border-default overflow-y-auto p-2">
-            <h3 class="text-sm font-semibold mb-2 px-2">Opponent's Pieces</h3>
+            <h3 class="text-sm font-semibold mb-2 px-2">
+              Opponent's Pieces
+            </h3>
             <PieceTray
               :pieces="opponentPieces"
               :player-color="myColor === 'blue' ? 'orange' : 'blue'"
@@ -434,10 +484,16 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
               <!-- Confirm/Cancel when preview is active -->
               <template v-if="previewCells">
-                <UButton color="primary" @click="confirmPlacement">
+                <UButton
+                  color="primary"
+                  @click="confirmPlacement"
+                >
                   Confirm
                 </UButton>
-                <UButton variant="outline" @click="previewCells = null">
+                <UButton
+                  variant="outline"
+                  @click="previewCells = null"
+                >
                   Cancel
                 </UButton>
               </template>
@@ -476,7 +532,11 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       </template>
 
       <!-- Mobile piece selection sheet -->
-      <USlideover v-model:open="showPieceSheet" side="bottom" title="Select a Piece">
+      <USlideover
+        v-model:open="showPieceSheet"
+        side="bottom"
+        title="Select a Piece"
+      >
         <template #body>
           <div class="p-4">
             <PieceTray

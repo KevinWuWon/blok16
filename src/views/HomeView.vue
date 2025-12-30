@@ -40,8 +40,12 @@ async function createGame() {
   <div class="min-h-screen flex flex-col items-center justify-center p-4">
     <div class="text-center space-y-8">
       <div>
-        <h1 class="text-4xl font-bold mb-2">Blokus Duo</h1>
-        <p class="text-muted">Play online with a friend</p>
+        <h1 class="text-4xl font-bold mb-2">
+          Blokus Duo
+        </h1>
+        <p class="text-muted">
+          Play online with a friend
+        </p>
       </div>
 
       <UButton

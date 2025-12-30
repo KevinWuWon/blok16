@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 
 // Re-implement validation logic for server-side (can't import from lib in Convex)
 const BOARD_SIZE = 14;

@@ -1,6 +1,6 @@
 // Client-side (and shared) validation logic for Blokus piece placement
 
-import { PIECES, getAllOrientations, translateCells, normalize, rotateCW, flipH } from "./pieces";
+import { PIECES, getAllOrientations, translateCells, normalize, rotateCW } from "./pieces";
 
 export const BOARD_SIZE = 14;
 export const STARTING_POSITIONS = {
