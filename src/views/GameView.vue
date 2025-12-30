@@ -517,7 +517,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
 
           <!-- Board area -->
           <main
-            class="flex-1 flex flex-col items-center p-4 overflow-hidden min-h-0"
+            class="flex flex-col items-center p-4 overflow-hidden"
             :class="showMobileTray ? 'justify-start pt-2' : 'justify-center'"
           >
             <!-- Game status / Turn indicator (hidden on mobile when piece tray is open) -->
