@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Board } from "../../lib/validation"
 
 const props = defineProps<{
@@ -8,11 +8,17 @@ const props = defineProps<{
   previewColor: "blue" | "orange"
   validAnchors: [number, number][]
   showAnchors: boolean
+  isDragging?: boolean
 }>()
 
 const emit = defineEmits<{
   cellClick: [row: number, col: number]
+  dragStart: [event: PointerEvent]
 }>()
+
+// Expose board element ref for coordinate calculations
+const boardRef = ref<HTMLElement | null>(null)
+defineExpose({ boardRef })
 
 const BOARD_SIZE = 14
 const STARTING_POSITIONS = {
@@ -60,6 +66,12 @@ function getCellClass(row: number, col: number): string {
     classes.push(
       props.previewColor === "blue" ? "bg-blue-500/50" : "bg-orange-500/50",
     )
+    // Add drag cursor for preview cells
+    if (!props.isDragging) {
+      classes.push("cursor-grab")
+    } else {
+      classes.push("cursor-grabbing")
+    }
   } else {
     // Empty cell - check for starting position styling
     const start = isStartingPosition(row, col)
@@ -83,6 +95,12 @@ function getCellClass(row: number, col: number): string {
   return classes.join(" ")
 }
 
+function handlePointerDown(event: PointerEvent, row: number, col: number) {
+  if (isPreviewCell(row, col)) {
+    emit('dragStart', event)
+  }
+}
+
 function handleCellClick(row: number, col: number) {
   if (isValidAnchor(row, col) || isPreviewCell(row, col)) {
     emit("cellClick", row, col)
@@ -92,12 +110,14 @@ function handleCellClick(row: number, col: number) {
 
 <template>
   <div
-    class="grid rounded-lg shadow-lg ring-2 ring-default-400 dark:ring-default-500 overflow-hidden"
+    ref="boardRef"
+    class="grid rounded-lg shadow-lg ring-2 ring-default-400 dark:ring-default-500 overflow-hidden select-none"
     :style="{
       gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
       width: 'min(calc(100vw - 32px), calc(100dvh - 180px), 560px)',
       aspectRatio: '1',
-      height: 'auto'
+      height: 'auto',
+      touchAction: previewCells ? 'none' : 'auto'
     }"
   >
     <div
@@ -106,6 +126,7 @@ function handleCellClick(row: number, col: number) {
       :class="getCellClass(cell.row, cell.col)"
       class="relative"
       @click="handleCellClick(cell.row, cell.col)"
+      @pointerdown="handlePointerDown($event, cell.row, cell.col)"
     >
       <div
         v-if="isValidAnchor(cell.row, cell.col)"

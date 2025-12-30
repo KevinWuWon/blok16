@@ -19,6 +19,7 @@ import PieceMiniPreview from '@/components/PieceMiniPreview.vue'
 import RoleSelectionDialog from '@/components/RoleSelectionDialog.vue'
 import TakeoverConfirmDialog from '@/components/TakeoverConfirmDialog.vue'
 import { useGameRole, type GameRole } from '@/composables/useGameRole'
+import { usePieceDrag } from '@/composables/usePieceDrag'
 
 type Player = string | { id: string; name: string }
 
@@ -57,6 +58,11 @@ const selectedPieceId = ref<number | null>(null)
 const previewCells = ref<[number, number][] | null>(null)
 const currentOrientationIndex = ref(0)
 const showPieceSheet = ref(false)
+
+// Board component ref for drag and drop
+const boardComponentRef = ref<InstanceType<typeof BoardComponent> | null>(null)
+// Note: defineExpose unwraps refs, so boardRef is the element directly
+const boardElement = computed(() => boardComponentRef.value?.boardRef ?? null)
 
 // Game flow state machine
 type GameFlowState = 'loading' | 'selecting' | 'claiming' | 'confirming' | 'ready'
@@ -108,6 +114,22 @@ const validAnchorsForSelectedPiece = computed(() => {
   if (!game.value || !myColor.value || selectedPieceId.value === null || !isMyTurn.value) return []
   return getValidAnchorsForPiece(game.value.board as Board, selectedPieceId.value, myColor.value)
 })
+
+// Drag and drop composable
+const gameBoard = computed(() => (game.value?.board as Board) ?? [])
+const {
+  isDragging,
+  startDrag,
+} = usePieceDrag(
+  boardElement,
+  gameBoard,
+  selectedPieceId,
+  currentOrientationIndex,
+  validAnchorsForSelectedPiece,
+  myColor,
+  previewCells,
+  (cells) => { previewCells.value = cells }
+)
 
 const canPass = computed(() => {
   if (!game.value || !myColor.value || !isMyTurn.value) return false
@@ -546,12 +568,15 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             </div>
 
             <BoardComponent
+              ref="boardComponentRef"
               :board="game.board as Board"
               :preview-cells="previewCells"
               :preview-color="myColor || 'blue'"
               :valid-anchors="selectedPieceId !== null ? validAnchorsForSelectedPiece : validAnchors"
               :show-anchors="isMyTurn && selectedPieceId !== null"
+              :is-dragging="isDragging"
               @cell-click="handleBoardClick"
+              @drag-start="startDrag"
             />
           </main>
 

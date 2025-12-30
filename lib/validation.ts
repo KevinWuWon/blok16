@@ -358,3 +358,71 @@ export function getValidAnchorsForPiece(
     return placements.length > 0;
   });
 }
+
+// Find the nearest valid anchor to a given position (for drag and drop snapping)
+export function findNearestValidAnchor(
+  row: number,
+  col: number,
+  validAnchors: [number, number][]
+): [number, number] | null {
+  if (validAnchors.length === 0) return null;
+
+  let nearest = validAnchors[0];
+  let minDist = Infinity;
+
+  for (const [r, c] of validAnchors) {
+    const dist = (r - row) ** 2 + (c - col) ** 2;
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = [r, c];
+    }
+  }
+
+  return nearest;
+}
+
+// Calculate the center of a set of cells
+export function getCellsCenter(cells: [number, number][]): { row: number; col: number } {
+  const sumR = cells.reduce((sum, [r]) => sum + r, 0);
+  const sumC = cells.reduce((sum, [, c]) => sum + c, 0);
+  return {
+    row: sumR / cells.length,
+    col: sumC / cells.length,
+  };
+}
+
+// Find the placement whose center is closest to the cursor position
+// This is used during drag to pick the best placement when there are multiple
+// valid placements at the same anchor (e.g., first move on starting position)
+export function findBestPlacementForCursor(
+  cursorRow: number,
+  cursorCol: number,
+  placements: { cells: [number, number][]; orientationIndex: number }[],
+  preferredOrientationIndex?: number
+): { cells: [number, number][]; orientationIndex: number } | null {
+  if (placements.length === 0) return null;
+  if (placements.length === 1) return placements[0];
+
+  let bestPlacement = placements[0];
+  let minDist = Infinity;
+
+  for (const placement of placements) {
+    const center = getCellsCenter(placement.cells);
+    // Use squared distance (no need for sqrt for comparison)
+    let dist = (center.row - cursorRow) ** 2 + (center.col - cursorCol) ** 2;
+
+    // Slight preference for placements with the preferred orientation
+    // (helps maintain consistency when rotating)
+    if (preferredOrientationIndex !== undefined &&
+        placement.orientationIndex === preferredOrientationIndex) {
+      dist -= 0.1; // Small bonus
+    }
+
+    if (dist < minDist) {
+      minDist = dist;
+      bestPlacement = placement;
+    }
+  }
+
+  return bestPlacement;
+}
