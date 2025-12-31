@@ -1,33 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { useConvexQuery, useConvexMutation } from "convex-vue";
+import { useConvexMutation } from "convex-vue";
 import { api } from "../../convex/_generated/api";
-import {
-  findCornerAnchors,
-  findValidPlacementsAtAnchor,
-  getNextValidOrientation,
-  getFlippedOrientation,
-  hasValidMoves,
-  getValidAnchorsForPiece,
-  type PlayerColor,
-  type Board,
-} from "../../lib/validation";
-import { PIECES, normalize, flipH } from "../../lib/pieces";
+import type { Board } from "../../lib/validation";
 import BoardComponent from "@/components/Board.vue";
 import PieceTray from "@/components/PieceTray.vue";
 import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import { useGameRole } from "@/composables/useGameRole";
+import { useGameState } from "@/composables/useGameState";
+import { useGameInteraction } from "@/composables/useGameInteraction";
+import { useGameFlow } from "@/composables/useGameFlow";
+import { usePlacement } from "@/composables/usePlacement";
 import { usePieceDrag } from "@/composables/usePieceDrag";
 import {
   useNotifications,
   getSubscriptionData,
 } from "@/composables/useNotifications";
 import { getStoredValue, setStoredValue } from "@/composables/useStorage";
-
-type Player = string | { id: string; name: string };
 
 const route = useRoute();
 const code = computed(() => route.params.code as string);
@@ -48,14 +40,6 @@ onMounted(async () => {
 const gameRole = computed(() => useGameRole(code.value));
 const role = computed(() => gameRole.value.role.value);
 
-// Convex query for game state
-const { data: game, isPending: isLoading } = useConvexQuery(
-  api.games.getGame,
-  () => ({
-    code: code.value,
-  }),
-);
-
 // Mutations
 const claimColorMutation = useConvexMutation(api.games.claimColor);
 const placePieceMutation = useConvexMutation(api.games.placePiece);
@@ -63,136 +47,92 @@ const passTurnMutation = useConvexMutation(api.games.passTurn);
 const pushSubscribeMutation = useConvexMutation(api.push.subscribe);
 const pushUpdateGameCodeMutation = useConvexMutation(api.push.updateGameCode);
 
-// Interaction FSM state
-type PreviewData = { anchor: [number, number]; cells: [number, number][] };
-type InteractionState =
-  | { type: "idle" }
-  | { type: "browsing"; tab: "mine" | "opponent" }
-  | {
-      type: "placing";
-      pieceId: number;
-      orientation: number;
-      preview: PreviewData | null;
-    };
+// Use composables
+const {
+  game,
+  isLoading,
+  myColor,
+  isSpectator,
+  isMyTurn,
+  myPieces,
+  opponentPieces,
+  blueName,
+  orangeName,
+  opponentName,
+  blueDisplayName,
+  orangeDisplayName,
+  turnLabel,
+  gameUrl,
+  gameBoard,
+} = useGameState(code, role);
 
-const interaction = ref<InteractionState>({ type: "idle" });
+// Interaction composable (without isDragging initially)
+const {
+  interaction,
+  selectedPieceId,
+  currentOrientationIndex,
+  previewCells,
+  openTray,
+  closeTray,
+  switchTab,
+  selectPiece,
+  changePiece,
+  clearSelection,
+  rotatePiece,
+  flipPieceAction,
+  updatePreview,
+  handleBoardClick,
+} = useGameInteraction(game, myColor, myPieces, isMyTurn);
 
-// Derived values for backward compatibility with template and composables
-const selectedPieceId = computed(() =>
-  interaction.value.type === "placing" ? interaction.value.pieceId : null,
+const interactionType = computed(() => interaction.value.type);
+
+// Flow composable
+const {
+  flowState,
+  takeoverColor,
+  takeoverPlayerName,
+  mobileUIState,
+  handleRoleSelect,
+  handleTakeoverConfirm,
+  handleTakeoverCancel,
+} = useGameFlow(
+  game,
+  role,
+  isLoading,
+  isMyTurn,
+  interactionType,
+  gameRole,
+  claimColorMutation,
+  code,
+  playerId,
 );
-const currentOrientationIndex = computed(() =>
-  interaction.value.type === "placing" ? interaction.value.orientation : 0,
-);
-const previewCells = computed(() =>
-  interaction.value.type === "placing"
-    ? (interaction.value.preview?.cells ?? null)
-    : null,
+
+// Placement composable
+const {
+  validAnchors,
+  validAnchorsForSelectedPiece,
+  canPass,
+  confirmPlacement,
+  passTurnAction,
+} = usePlacement(
+  game,
+  myColor,
+  myPieces,
+  isMyTurn,
+  selectedPieceId,
+  interaction,
+  code,
+  playerId,
+  placePieceMutation,
+  passTurnMutation,
+  clearSelection,
 );
 
 // Board component ref for drag and drop
 const boardComponentRef = ref<InstanceType<typeof BoardComponent> | null>(null);
-// Note: defineExpose unwraps refs, so boardRef is the element directly
 const boardElement = computed(() => boardComponentRef.value?.boardRef ?? null);
 
-// Game flow state machine
-type GameFlowState =
-  | "loading"
-  | "selecting"
-  | "claiming"
-  | "confirming"
-  | "ready";
-const flowState = ref<GameFlowState>("loading");
-
-// Dialog state
-const takeoverColor = ref<"blue" | "orange">("blue");
-const takeoverPlayerName = ref("");
-const pendingRoleSelection = ref<{
-  role: "blue" | "orange";
-  name: string;
-} | null>(null);
-
-// Helper to get player name from legacy or new format
-function getPlayerName(player?: Player): string | null {
-  if (!player) return null;
-  if (typeof player === "string") return "Anonymous";
-  return player.name;
-}
-
-// Computed values
-const myColor = computed<PlayerColor | null>(() => {
-  if (role.value === "blue") return "blue";
-  if (role.value === "orange") return "orange";
-  return null;
-});
-
-const isSpectator = computed(() => role.value === "spectator");
-
-const isMyTurn = computed(() => {
-  if (isSpectator.value) return false;
-  return (
-    game.value?.currentTurn === myColor.value &&
-    game.value?.status === "playing"
-  );
-});
-
-// Mobile UI state - derived from server state + FSM
-type MobileUIState =
-  | "loading"
-  | "waiting"
-  | "idle"
-  | "browsing"
-  | "placing"
-  | "watching"
-  | "finished";
-
-const mobileUIState = computed<MobileUIState>(() => {
-  // Server state takes precedence
-  if (flowState.value !== "ready") return "loading";
-  if (game.value?.status === "waiting") return "waiting";
-  if (game.value?.status === "finished") return "finished";
-
-  // Client FSM state
-  if (interaction.value.type === "placing") return "placing";
-  if (interaction.value.type === "browsing") return "browsing";
-
-  // Default based on turn
-  return isMyTurn.value ? "idle" : "watching";
-});
-
-const myPieces = computed(() => {
-  if (!game.value || !myColor.value) return [];
-  return game.value.pieces[myColor.value];
-});
-
-const opponentPieces = computed(() => {
-  if (!game.value || !myColor.value) return [];
-  const opponentColor = myColor.value === "blue" ? "orange" : "blue";
-  return game.value.pieces[opponentColor];
-});
-
-const validAnchors = computed(() => {
-  if (!game.value || !myColor.value || !isMyTurn.value) return [];
-  return findCornerAnchors(game.value.board as Board, myColor.value);
-});
-
-const validAnchorsForSelectedPiece = computed(() => {
-  if (
-    !game.value ||
-    !myColor.value ||
-    selectedPieceId.value === null ||
-    !isMyTurn.value
-  )
-    return [];
-  return getValidAnchorsForPiece(
-    game.value.board as Board,
-    selectedPieceId.value,
-    myColor.value,
-  );
-});
-
 // Drag and drop composable
-const gameBoard = computed(() => (game.value?.board as Board) ?? []);
 const { isDragging, startDrag } = usePieceDrag(
   boardElement,
   gameBoard,
@@ -201,32 +141,8 @@ const { isDragging, startDrag } = usePieceDrag(
   validAnchorsForSelectedPiece,
   myColor,
   previewCells,
-  (cells) => {
-    // Update FSM state with new preview
-    if (interaction.value.type === "placing" && cells) {
-      // Find anchor from cells (first cell is typically the anchor)
-      const anchor: [number, number] = cells[0];
-      interaction.value = {
-        ...interaction.value,
-        preview: { anchor, cells },
-      };
-    } else if (interaction.value.type === "placing" && !cells) {
-      interaction.value = {
-        ...interaction.value,
-        preview: null,
-      };
-    }
-  },
+  updatePreview,
 );
-
-const canPass = computed(() => {
-  if (!game.value || !myColor.value || !isMyTurn.value) return false;
-  return !hasValidMoves(
-    game.value.board as Board,
-    myPieces.value,
-    myColor.value,
-  );
-});
 
 // Push Notifications
 const {
@@ -286,321 +202,8 @@ onMounted(async () => {
   }
 });
 
-const blueName = computed(() => getPlayerName(game.value?.players.blue));
-const orangeName = computed(() => getPlayerName(game.value?.players.orange));
-
-const opponentName = computed(() => {
-  if (!myColor.value) return "Opponent";
-  const name = myColor.value === "blue" ? orangeName.value : blueName.value;
-  return name || "Opponent";
-});
-
-const blueDisplayName = computed(() => blueName.value || "Blue");
-const orangeDisplayName = computed(() => orangeName.value || "Orange");
-
-const turnLabel = computed(() => {
-  if (!game.value) return "";
-  return isMyTurn.value ? "Your turn" : "Their turn";
-});
-
-const gameUrl = computed(() => {
-  if (typeof window === "undefined") return "";
-  return `${window.location.origin}/game/${code.value}`;
-});
-
-// Manage flow state transitions
-watch(
-  [game, role, isLoading],
-  () => {
-    if (isLoading.value || !game.value) {
-      flowState.value = "loading";
-      return;
-    }
-
-    if (role.value !== null) {
-      flowState.value = "ready";
-      return;
-    }
-
-    // Only trigger 'selecting' if we aren't already in a transition state
-    if (flowState.value === "loading" || flowState.value === "ready") {
-      flowState.value = "selecting";
-    }
-  },
-  { immediate: true },
-);
-
-// Handle role selection
-async function handleRoleSelect(
-  selectedRole: "blue" | "orange" | "spectator",
-  name?: string,
-) {
-  if (selectedRole === "spectator") {
-    flowState.value = "claiming";
-    gameRole.value.setRole("spectator");
-    flowState.value = "ready";
-    return;
-  }
-
-  if (!name) return;
-
-  flowState.value = "claiming";
-  const result = await claimColorMutation.mutate({
-    code: code.value,
-    playerId: playerId.value,
-    playerName: name,
-    color: selectedRole,
-  });
-
-  if (result?.success) {
-    gameRole.value.setRole(selectedRole, name);
-    flowState.value = "ready";
-  } else if (result?.requiresConfirmation) {
-    // Need takeover confirmation
-    pendingRoleSelection.value = { role: selectedRole, name };
-    takeoverColor.value = selectedRole;
-    takeoverPlayerName.value = result.currentPlayerName || "Anonymous";
-    flowState.value = "confirming";
-  } else {
-    // If error, go back to selecting
-    flowState.value = "selecting";
-  }
-}
-
-async function handleTakeoverConfirm() {
-  if (!pendingRoleSelection.value) return;
-
-  flowState.value = "claiming";
-  const result = await claimColorMutation.mutate({
-    code: code.value,
-    playerId: playerId.value,
-    playerName: pendingRoleSelection.value.name,
-    color: pendingRoleSelection.value.role,
-    forceTakeover: true,
-  });
-
-  if (result?.success) {
-    gameRole.value.setRole(
-      pendingRoleSelection.value.role,
-      pendingRoleSelection.value.name,
-    );
-    flowState.value = "ready";
-  } else {
-    flowState.value = "selecting";
-  }
-
-  pendingRoleSelection.value = null;
-}
-
-function handleTakeoverCancel() {
-  pendingRoleSelection.value = null;
-  flowState.value = "selecting";
-}
-
-// FSM transition functions
-function openTray(tab: "mine" | "opponent" = "mine") {
-  interaction.value = { type: "browsing", tab };
-}
-
-function closeTray() {
-  interaction.value = { type: "idle" };
-}
-
-function switchTab(tab: "mine" | "opponent") {
-  if (interaction.value.type === "browsing") {
-    interaction.value = { ...interaction.value, tab };
-  }
-}
-
-function selectPiece(pieceId: number) {
-  if (!myPieces.value.includes(pieceId)) return;
-  if (!isMyTurn.value) return;
-  interaction.value = { type: "placing", pieceId, orientation: 0, preview: null };
-}
-
-function changePiece() {
-  // Go back to browsing (tray opens, piece highlighted)
-  interaction.value = { type: "browsing", tab: "mine" };
-}
-
-function clearSelection() {
-  interaction.value = { type: "idle" };
-}
-
-function handleBoardClick(row: number, col: number) {
-  if (!game.value || !myColor.value || !isMyTurn.value) return;
-  if (interaction.value.type !== "placing") return;
-  if (isDragging.value) return; // Don't recompute when starting a drag
-
-  const currentInteraction = interaction.value;
-  const placements = findValidPlacementsAtAnchor(
-    game.value.board as Board,
-    currentInteraction.pieceId,
-    row,
-    col,
-    myColor.value,
-  );
-
-  if (placements.length > 0) {
-    // Try to keep the current orientation if valid at this anchor
-    const matchingOrientation = placements.find(
-      (p) => p.orientationIndex === currentInteraction.orientation,
-    );
-    const placement = matchingOrientation || placements[0];
-    const anchor: [number, number] = [row, col];
-    interaction.value = {
-      ...currentInteraction,
-      orientation: placement.orientationIndex,
-      preview: { anchor, cells: placement.cells },
-    };
-  }
-}
-
-function rotatePiece(direction: "cw" | "ccw") {
-  if (!game.value || !myColor.value) return;
-  if (interaction.value.type !== "placing") return;
-
-  const { pieceId, orientation, preview } = interaction.value;
-
-  if (preview) {
-    const result = getNextValidOrientation(
-      game.value.board as Board,
-      pieceId,
-      preview.cells,
-      myColor.value,
-      direction,
-    );
-    if (result) {
-      interaction.value = {
-        ...interaction.value,
-        orientation: result.orientationIndex,
-        preview: { anchor: preview.anchor, cells: result.cells },
-      };
-    }
-  } else {
-    const orientations = getAllOrientationsForPiece(pieceId);
-    const numOrientations = orientations.length;
-    const delta = direction === "cw" ? 1 : -1;
-    const newOrientation = (orientation + delta + numOrientations) % numOrientations;
-    interaction.value = {
-      ...interaction.value,
-      orientation: newOrientation,
-    };
-  }
-}
-
-function flipPieceAction() {
-  if (!game.value || !myColor.value) return;
-  if (interaction.value.type !== "placing") return;
-
-  const { pieceId, preview } = interaction.value;
-
-  if (preview) {
-    const result = getFlippedOrientation(
-      game.value.board as Board,
-      pieceId,
-      preview.cells,
-      myColor.value,
-    );
-    if (result) {
-      interaction.value = {
-        ...interaction.value,
-        orientation: result.orientationIndex,
-        preview: { anchor: preview.anchor, cells: result.cells },
-      };
-    }
-  }
-}
-
-async function confirmPlacement() {
-  if (interaction.value.type !== "placing" || !interaction.value.preview) return;
-
-  const result = await placePieceMutation.mutate({
-    code: code.value,
-    playerId: playerId.value,
-    pieceId: interaction.value.pieceId,
-    cells: interaction.value.preview.cells,
-  });
-
-  if (result?.success) {
-    clearSelection();
-  }
-}
-
-async function passTurnAction() {
-  await passTurnMutation.mutate({
-    code: code.value,
-    playerId: playerId.value,
-  });
-}
-
 async function copyLink() {
   await navigator.clipboard.writeText(gameUrl.value);
-}
-
-// Keyboard shortcuts
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent) => {
-    if (e.key === "r" || e.key === "R") {
-      rotatePiece("cw");
-    } else if (e.key === "f" || e.key === "F") {
-      flipPieceAction();
-    } else if (e.key === "Escape") {
-      if (interaction.value.type === "placing") {
-        if (interaction.value.preview) {
-          // Clear preview but stay in placing state
-          interaction.value = { ...interaction.value, preview: null };
-        } else {
-          clearSelection();
-        }
-      } else if (interaction.value.type === "browsing") {
-        closeTray();
-      }
-    }
-  };
-
-  window.addEventListener("keydown", handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener("keydown", handleKeydown);
-  });
-});
-
-// Watch for turn changes - reset placing state when turn ends
-watch(isMyTurn, (myTurn, wasMyTurn) => {
-  if (wasMyTurn && !myTurn && interaction.value.type === "placing") {
-    interaction.value = { type: "idle" };
-  }
-});
-
-// Helper functions
-function getAllOrientationsForPiece(pieceId: number): [number, number][][] {
-  const piece = PIECES[pieceId];
-  const orientations: [number, number][][] = [];
-  const seen = new Set<string>();
-
-  let current = normalize(piece.cells);
-
-  for (let flip = 0; flip < 2; flip++) {
-    for (let rot = 0; rot < 4; rot++) {
-      const key = [...current]
-        .sort((a, b) => a[0] - b[0] || a[1] - b[1])
-        .map(([r, c]) => `${r},${c}`)
-        .join("|");
-      if (!seen.has(key)) {
-        seen.add(key);
-        orientations.push([...current]);
-      }
-      current = rotateCW(current);
-    }
-    current = flipH(piece.cells);
-  }
-
-  return orientations;
-}
-
-function rotateCW(cells: [number, number][]): [number, number][] {
-  const rotated = cells.map(([r, c]) => [c, -r] as [number, number]);
-  return normalize(rotated);
 }
 </script>
 
