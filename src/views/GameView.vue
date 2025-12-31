@@ -705,6 +705,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
               :show-anchors="isMyTurn && selectedPieceId !== null"
               :is-dragging="isDragging"
               :compact="showMobileTray"
+              :last-placement-cells="game.lastPlacement as [number, number][] | undefined"
               @cell-click="handleBoardClick"
               @drag-start="startDrag"
             />

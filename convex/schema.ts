@@ -23,6 +23,7 @@ export default defineSchema({
     status: v.union(v.literal("waiting"), v.literal("playing"), v.literal("finished")),
     winner: v.union(v.literal("blue"), v.literal("orange"), v.literal("draw"), v.null()),
     lastPassedBy: v.union(v.literal("blue"), v.literal("orange"), v.null()),
+    lastPlacement: v.optional(v.array(v.array(v.number()))),
     createdAt: v.number(),
   }).index("by_code", ["code"]),
 

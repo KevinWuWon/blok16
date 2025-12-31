@@ -10,6 +10,7 @@ const props = defineProps<{
   showAnchors: boolean
   isDragging?: boolean
   compact?: boolean
+  lastPlacementCells?: [number, number][] | null
 }>()
 
 const emit = defineEmits<{
@@ -52,6 +53,11 @@ function isStartingPosition(row: number, col: number): "blue" | "orange" | null 
   if (row === STARTING_POSITIONS.blue.row && col === STARTING_POSITIONS.blue.col) return "blue"
   if (row === STARTING_POSITIONS.orange.row && col === STARTING_POSITIONS.orange.col) return "orange"
   return null
+}
+
+function isLastPlacement(row: number, col: number): boolean {
+  if (!props.lastPlacementCells) return false
+  return props.lastPlacementCells.some(([r, c]) => r === row && c === col)
 }
 
 function getCellClass(row: number, col: number): string {
@@ -131,6 +137,11 @@ function handleCellClick(row: number, col: number) {
       @click="handleCellClick(cell.row, cell.col)"
       @pointerdown="handlePointerDown($event, cell.row, cell.col)"
     >
+      <!-- Sheen overlay for last placement -->
+      <div
+        v-if="isLastPlacement(cell.row, cell.col)"
+        class="absolute inset-0 pointer-events-none bg-gradient-to-br from-white/30 via-transparent to-black/20"
+      />
       <div
         v-if="isValidAnchor(cell.row, cell.col)"
         class="absolute inset-0 m-auto w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"

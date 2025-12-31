@@ -516,6 +516,7 @@ export const placePiece = mutation({
       status: newStatus,
       winner: newWinner,
       lastPassedBy: null,
+      lastPlacement: args.cells,
     });
 
     // Send push notification to the next player (if game is still playing)
