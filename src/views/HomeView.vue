@@ -23,10 +23,10 @@ onMounted(() => {
 })
 
 // Query for my active games
-const myGamesQuery = computed(() =>
-  playerId.value ? { playerId: playerId.value } : "skip"
+const { data: myGames } = useConvexQuery(
+  api.games.getMyGames,
+  () => ({ playerId: playerId.value || "" }),
 )
-const myGames = useConvexQuery(api.games.getMyGames, myGamesQuery)
 
 const createGameMutation = useConvexMutation(api.games.createGame)
 
