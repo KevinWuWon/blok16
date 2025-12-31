@@ -25,25 +25,26 @@ import {
   useNotifications,
   getSubscriptionData,
 } from "@/composables/useNotifications";
+import { getStoredValue, setStoredValue } from "@/composables/useStorage";
 
 type Player = string | { id: string; name: string };
 
 const route = useRoute();
 const code = computed(() => route.params.code as string);
 
-// Player ID from localStorage
+// Player ID from IndexedDB
 const playerId = ref<string>("");
 
-onMounted(() => {
-  let id = localStorage.getItem("blokus-player-id");
+onMounted(async () => {
+  let id = await getStoredValue("player-id");
   if (!id) {
     id = crypto.randomUUID();
-    localStorage.setItem("blokus-player-id", id);
+    await setStoredValue("player-id", id);
   }
   playerId.value = id;
 });
 
-// Game role from cookies
+// Game role from IndexedDB
 const gameRole = computed(() => useGameRole(code.value));
 const role = computed(() => gameRole.value.role.value);
 

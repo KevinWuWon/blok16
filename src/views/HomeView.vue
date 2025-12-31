@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConvexMutation, useConvexQuery } from "convex-vue"
 import { api } from "../../convex/_generated/api"
+import { getStoredValue, setStoredValue } from "../composables/useStorage"
 
 const router = useRouter()
 const isCreating = ref(false)
@@ -16,11 +17,11 @@ const joinError = ref('')
 // Get or create player ID
 const playerId = ref<string>("")
 
-onMounted(() => {
-  let id = localStorage.getItem("blokus-player-id")
+onMounted(async () => {
+  let id = await getStoredValue("player-id")
   if (!id) {
     id = crypto.randomUUID()
-    localStorage.setItem("blokus-player-id", id)
+    await setStoredValue("player-id", id)
   }
   playerId.value = id
 })
@@ -33,13 +34,6 @@ const { data: myGames } = useConvexQuery(
 
 const createGameMutation = useConvexMutation(api.games.createGame)
 
-// Cookie helpers
-function setCookie(name: string, value: string, days = 30) {
-  if (typeof document === "undefined") return
-  const expires = new Date(Date.now() + days * 864e5).toUTCString()
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
-}
-
 async function createGame() {
   if (!playerId.value || isCreating.value || !playerName.value.trim()) return
 
@@ -51,9 +45,9 @@ async function createGame() {
       playerColor: selectedColor.value,
     })
     if (result?.code) {
-      // Set cookies for the new game
-      setCookie(`blokus-role-${result.code}`, selectedColor.value)
-      setCookie(`blokus-name-${result.code}`, playerName.value.trim())
+      // Store role for the new game
+      await setStoredValue(`role-${result.code}`, selectedColor.value)
+      await setStoredValue(`name-${result.code}`, playerName.value.trim())
       router.push(`/game/${result.code}`)
     }
   } finally {

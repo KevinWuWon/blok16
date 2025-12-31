@@ -1,35 +1,20 @@
 import { ref, computed } from 'vue'
+import { getStoredValue, setStoredValue, deleteStoredValue, getStoredValueSync } from './useStorage'
 
 export type GameRole = "blue" | "orange" | "spectator"
-
-// Cookie helpers
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`))
-  return match ? decodeURIComponent(match[2]) : null
-}
-
-function setCookie(name: string, value: string, days = 30) {
-  if (typeof document === "undefined") return
-  const expires = new Date(Date.now() + days * 864e5).toUTCString()
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
-}
-
-function deleteCookie(name: string) {
-  if (typeof document === "undefined") return
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
-}
 
 export function useGameRole(gameCode: string) {
   const role = ref<GameRole | null>(null)
   const playerName = ref<string | null>(null)
+  const isLoading = ref(true)
 
-  const roleKey = computed(() => `blokus-role-${gameCode}`)
-  const nameKey = computed(() => `blokus-name-${gameCode}`)
+  const roleKey = computed(() => `role-${gameCode}`)
+  const nameKey = computed(() => `name-${gameCode}`)
 
-  function loadFromCookies() {
-    const savedRole = getCookie(roleKey.value)
-    const savedName = getCookie(nameKey.value)
+  // Sync load for immediate display (from localStorage fallback)
+  function loadFromStorageSync() {
+    const savedRole = getStoredValueSync(roleKey.value)
+    const savedName = getStoredValueSync(nameKey.value)
 
     if (savedRole === "blue" || savedRole === "orange" || savedRole === "spectator") {
       role.value = savedRole
@@ -40,21 +25,40 @@ export function useGameRole(gameCode: string) {
     playerName.value = savedName
   }
 
-  function setRole(newRole: GameRole, name?: string) {
-    role.value = newRole
-    setCookie(roleKey.value, newRole)
+  // Async load from IndexedDB (more reliable)
+  async function loadFromStorage() {
+    isLoading.value = true
+    try {
+      const savedRole = await getStoredValue(roleKey.value)
+      const savedName = await getStoredValue(nameKey.value)
 
-    if (name) {
-      playerName.value = name
-      setCookie(nameKey.value, name)
+      if (savedRole === "blue" || savedRole === "orange" || savedRole === "spectator") {
+        role.value = savedRole
+      } else {
+        role.value = null
+      }
+
+      playerName.value = savedName
+    } finally {
+      isLoading.value = false
     }
   }
 
-  function clearRole() {
+  async function setRole(newRole: GameRole, name?: string) {
+    role.value = newRole
+    await setStoredValue(roleKey.value, newRole)
+
+    if (name) {
+      playerName.value = name
+      await setStoredValue(nameKey.value, name)
+    }
+  }
+
+  async function clearRole() {
     role.value = null
     playerName.value = null
-    deleteCookie(roleKey.value)
-    deleteCookie(nameKey.value)
+    await deleteStoredValue(roleKey.value)
+    await deleteStoredValue(nameKey.value)
   }
 
   // Computed helpers
@@ -62,16 +66,18 @@ export function useGameRole(gameCode: string) {
   const isSpectator = computed(() => role.value === "spectator")
   const hasRole = computed(() => role.value !== null)
 
-  // Load on creation
-  loadFromCookies()
+  // Load sync first for immediate display, then async for accuracy
+  loadFromStorageSync()
+  loadFromStorage()
 
   return {
     role,
     playerName,
+    isLoading,
     isPlayer,
     isSpectator,
     hasRole,
-    loadFromCookies,
+    loadFromStorage,
     setRole,
     clearRole,
   }
