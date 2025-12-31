@@ -876,50 +876,41 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                     class="w-12 h-12"
                   />
                   <UButton
+                    icon="i-lucide-arrow-down-up"
+                    size="xl"
+                    variant="outline"
+                    title="Change Piece"
+                    @click="changePiece"
+                  />
+                  <UButton
+                    icon="i-lucide-check"
+                    size="xl"
+                    title="Confirm"
+                    @click="confirmPlacement"
+                  />
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                  <UButton
                     icon="i-lucide-rotate-ccw"
-                    size="lg"
+                    size="xl"
                     variant="outline"
                     title="Rotate counter-clockwise"
                     @click="rotatePiece('ccw')"
                   />
                   <UButton
                     icon="i-lucide-rotate-cw"
-                    size="lg"
+                    size="xl"
                     variant="outline"
                     title="Rotate clockwise (R)"
                     @click="rotatePiece('cw')"
                   />
                   <UButton
                     icon="i-lucide-flip-horizontal"
-                    size="lg"
+                    size="xl"
                     variant="outline"
                     title="Flip (F)"
                     @click="flipPieceAction"
                   />
-                </div>
-                <!-- Confirm (only when preview active) -->
-                <UButton
-                  v-if="previewCells"
-                  color="primary"
-                  size="lg"
-                  block
-                  @click="confirmPlacement"
-                >
-                  Confirm Placement
-                </UButton>
-                <!-- Change piece / Deselect row -->
-                <div class="flex gap-2">
-                  <UButton
-                    variant="outline"
-                    size="lg"
-                    class="flex-1"
-                    @click="changePiece"
-                  >
-                    Change Piece
-                  </UButton>
-                  <UButton variant="ghost" @click="clearSelection">
-                    Deselect
-                  </UButton>
                 </div>
               </div>
             </div>
@@ -953,6 +944,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             <!-- Mobile: Select piece button (idle state) -->
             <UButton
               v-if="mobileUIState === 'idle'"
+              size="xl"
               class="md:hidden"
               @click="openTray('mine')"
             >
@@ -962,6 +954,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
             <!-- Mobile: Hide tray button (browsing state) -->
             <UButton
               v-if="mobileUIState === 'browsing'"
+              size="xl"
               class="md:hidden"
               variant="outline"
               @click="closeTray"
@@ -974,7 +967,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
               v-if="(mobileUIState === 'watching' || mobileUIState === 'finished') && interaction.type === 'idle'"
               class="md:hidden"
               variant="outline"
-              size="sm"
+              size="xl"
               @click="openTray('mine')"
             >
               View Pieces
