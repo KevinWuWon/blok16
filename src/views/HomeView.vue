@@ -245,9 +245,11 @@ function joinGame() {
           <UFormField label="Game Code or URL">
             <UInput
               v-model="joinInput"
+              size="xl"
               placeholder="Enter code or paste game URL"
               autofocus
               @keyup.enter="joinGame"
+              class="w-full"
             />
           </UFormField>
           <p v-if="joinError" class="text-sm text-red-500">
@@ -258,12 +260,14 @@ function joinGame() {
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton
+            size="xl"
             variant="ghost"
             @click="showJoinDialog = false"
           >
             Cancel
           </UButton>
           <UButton
+            size="xl"
             :disabled="!joinInput.trim()"
             @click="joinGame"
           >
