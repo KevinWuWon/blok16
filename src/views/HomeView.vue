@@ -7,8 +7,11 @@ import { api } from "../../convex/_generated/api"
 const router = useRouter()
 const isCreating = ref(false)
 const showCreateDialog = ref(false)
+const showJoinDialog = ref(false)
 const playerName = ref('')
 const selectedColor = ref<'blue' | 'orange'>('blue')
+const joinInput = ref('')
+const joinError = ref('')
 
 // Get or create player ID
 const playerId = ref<string>("")
@@ -61,6 +64,38 @@ async function createGame() {
 function openCreateDialog() {
   showCreateDialog.value = true
 }
+
+function openJoinDialog() {
+  joinInput.value = ''
+  joinError.value = ''
+  showJoinDialog.value = true
+}
+
+function extractGameCode(input: string): string | null {
+  const trimmed = input.trim()
+
+  // Check if it's a URL ending in /game/<code>
+  const urlMatch = trimmed.match(/\/game\/([A-Za-z0-9]{6})(?:\/)?$/)
+  if (urlMatch) {
+    return urlMatch[1].toUpperCase()
+  }
+
+  // Check if it's just a 6-character code
+  if (/^[A-Za-z0-9]{6}$/.test(trimmed)) {
+    return trimmed.toUpperCase()
+  }
+
+  return null
+}
+
+function joinGame() {
+  const code = extractGameCode(joinInput.value)
+  if (!code) {
+    joinError.value = 'Enter a valid 6-character code or game URL'
+    return
+  }
+  router.push(`/game/${code}`)
+}
 </script>
 
 <template>
@@ -75,16 +110,25 @@ function openCreateDialog() {
         </p>
       </div>
 
-      <UButton
-        size="xl"
-        :disabled="!playerId"
-        @click="openCreateDialog"
-      >
-        Create Game
-      </UButton>
+      <div class="flex flex-col gap-3">
+        <UButton
+          size="xl"
+          :disabled="!playerId"
+          @click="openCreateDialog"
+        >
+          Create Game
+        </UButton>
+        <UButton
+          size="xl"
+          variant="outline"
+          @click="openJoinDialog"
+        >
+          Join Game
+        </UButton>
+      </div>
 
       <div class="text-sm text-muted">
-        <p>Create a game and share the link with a friend to play.</p>
+        <p>Create a game and share the link, or join with a code.</p>
       </div>
 
       <!-- My Active Games -->
@@ -186,6 +230,44 @@ function openCreateDialog() {
             @click="createGame"
           >
             Create Game
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Join Game Dialog -->
+    <UModal
+      v-model:open="showJoinDialog"
+      title="Join Game"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Game Code or URL">
+            <UInput
+              v-model="joinInput"
+              placeholder="Enter code or paste game URL"
+              autofocus
+              @keyup.enter="joinGame"
+            />
+          </UFormField>
+          <p v-if="joinError" class="text-sm text-red-500">
+            {{ joinError }}
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            variant="ghost"
+            @click="showJoinDialog = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            :disabled="!joinInput.trim()"
+            @click="joinGame"
+          >
+            Join
           </UButton>
         </div>
       </template>
