@@ -25,6 +25,5 @@ declare module 'vue' {
     UIcon: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
     UModal: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
-    USlideover: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_@babel+parser@7.28.5_@floating-ui+dom@1.7.4_@tiptap+extension-drag-handl_de9513c2c33c048471c89fd73b27467f/node_modules/@nuxt/ui/dist/runtime/components/Slideover.vue')['default']
   }
 }

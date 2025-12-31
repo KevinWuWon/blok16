@@ -431,9 +431,10 @@ function handleBoardClick(row: number, col: number) {
   if (interaction.value.type !== "placing") return;
   if (isDragging.value) return; // Don't recompute when starting a drag
 
+  const currentInteraction = interaction.value;
   const placements = findValidPlacementsAtAnchor(
     game.value.board as Board,
-    interaction.value.pieceId,
+    currentInteraction.pieceId,
     row,
     col,
     myColor.value,
@@ -442,12 +443,12 @@ function handleBoardClick(row: number, col: number) {
   if (placements.length > 0) {
     // Try to keep the current orientation if valid at this anchor
     const matchingOrientation = placements.find(
-      (p) => p.orientationIndex === interaction.value.orientation,
+      (p) => p.orientationIndex === currentInteraction.orientation,
     );
     const placement = matchingOrientation || placements[0];
     const anchor: [number, number] = [row, col];
     interaction.value = {
-      ...interaction.value,
+      ...currentInteraction,
       orientation: placement.orientationIndex,
       preview: { anchor, cells: placement.cells },
     };
