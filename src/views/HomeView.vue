@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useConvexMutation } from "convex-vue"
+import { useConvexMutation, useConvexQuery } from "convex-vue"
 import { api } from "../../convex/_generated/api"
 
 const router = useRouter()
@@ -21,6 +21,12 @@ onMounted(() => {
   }
   playerId.value = id
 })
+
+// Query for my active games
+const myGamesQuery = computed(() =>
+  playerId.value ? { playerId: playerId.value } : "skip"
+)
+const myGames = useConvexQuery(api.games.getMyGames, myGamesQuery)
 
 const createGameMutation = useConvexMutation(api.games.createGame)
 
@@ -79,6 +85,45 @@ function openCreateDialog() {
 
       <div class="text-sm text-muted">
         <p>Create a game and share the link with a friend to play.</p>
+      </div>
+
+      <!-- My Active Games -->
+      <div v-if="myGames && myGames.length > 0" class="w-full max-w-sm">
+        <h2 class="text-lg font-semibold mb-3 text-left">My Games</h2>
+        <ul class="space-y-2">
+          <li v-for="game in myGames" :key="game.code">
+            <RouterLink
+              :to="`/game/${game.code}`"
+              class="block p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-3 h-3 rounded-full"
+                    :class="game.myColor === 'blue' ? 'bg-blue-500' : 'bg-orange-500'"
+                  />
+                  <span class="font-mono font-medium">{{ game.code }}</span>
+                </div>
+                <span
+                  v-if="game.status === 'playing'"
+                  class="text-xs px-2 py-0.5 rounded-full"
+                  :class="game.isMyTurn ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'"
+                >
+                  {{ game.isMyTurn ? 'Your turn' : 'Their turn' }}
+                </span>
+                <span
+                  v-else
+                  class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                >
+                  Waiting
+                </span>
+              </div>
+              <div class="text-sm text-muted mt-1 text-left">
+                vs {{ game.opponentName || 'Waiting for opponent...' }}
+              </div>
+            </RouterLink>
+          </li>
+        </ul>
       </div>
     </div>
 

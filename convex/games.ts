@@ -273,6 +273,43 @@ export const getGame = query({
   },
 });
 
+export const getMyGames = query({
+  args: { playerId: v.string() },
+  handler: async (ctx, args) => {
+    // Get all games and filter by player ID and active status
+    const allGames = await ctx.db.query("games").collect();
+
+    return allGames.filter((game) => {
+      // Only active games (waiting or playing)
+      if (game.status !== "waiting" && game.status !== "playing") {
+        return false;
+      }
+
+      // Check if player is in this game
+      const blueId = normalizePlayer(game.players.blue);
+      const orangeId = normalizePlayer(game.players.orange);
+      return blueId === args.playerId || orangeId === args.playerId;
+    }).map((game) => {
+      // Determine player's color and opponent info
+      const blueId = normalizePlayer(game.players.blue);
+      const isBlue = blueId === args.playerId;
+      const myColor = isBlue ? "blue" : "orange";
+      const opponentColor = isBlue ? "orange" : "blue";
+      const opponent = game.players[opponentColor];
+      const opponentName = getPlayerName(opponent);
+
+      return {
+        code: game.code,
+        status: game.status,
+        myColor,
+        currentTurn: game.currentTurn,
+        isMyTurn: game.currentTurn === myColor,
+        opponentName: opponentName || null,
+      };
+    });
+  },
+});
+
 // Mutations
 
 export const createGame = mutation({
