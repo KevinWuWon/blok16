@@ -62,12 +62,32 @@ const passTurnMutation = useConvexMutation(api.games.passTurn);
 const pushSubscribeMutation = useConvexMutation(api.push.subscribe);
 const pushUpdateGameCodeMutation = useConvexMutation(api.push.updateGameCode);
 
-// Local game state
-const selectedPieceId = ref<number | null>(null);
-const previewCells = ref<[number, number][] | null>(null);
-const currentOrientationIndex = ref(0);
-const showMobileTray = ref(false);
-const showOpponentPiecesMobile = ref(false);
+// Interaction FSM state
+type PreviewData = { anchor: [number, number]; cells: [number, number][] };
+type InteractionState =
+  | { type: "idle" }
+  | { type: "browsing"; tab: "mine" | "opponent" }
+  | {
+      type: "placing";
+      pieceId: number;
+      orientation: number;
+      preview: PreviewData | null;
+    };
+
+const interaction = ref<InteractionState>({ type: "idle" });
+
+// Derived values for backward compatibility with template and composables
+const selectedPieceId = computed(() =>
+  interaction.value.type === "placing" ? interaction.value.pieceId : null,
+);
+const currentOrientationIndex = computed(() =>
+  interaction.value.type === "placing" ? interaction.value.orientation : 0,
+);
+const previewCells = computed(() =>
+  interaction.value.type === "placing"
+    ? (interaction.value.preview?.cells ?? null)
+    : null,
+);
 
 // Board component ref for drag and drop
 const boardComponentRef = ref<InstanceType<typeof BoardComponent> | null>(null);
@@ -115,6 +135,30 @@ const isMyTurn = computed(() => {
   );
 });
 
+// Mobile UI state - derived from server state + FSM
+type MobileUIState =
+  | "loading"
+  | "waiting"
+  | "idle"
+  | "browsing"
+  | "placing"
+  | "watching"
+  | "finished";
+
+const mobileUIState = computed<MobileUIState>(() => {
+  // Server state takes precedence
+  if (flowState.value !== "ready") return "loading";
+  if (game.value?.status === "waiting") return "waiting";
+  if (game.value?.status === "finished") return "finished";
+
+  // Client FSM state
+  if (interaction.value.type === "placing") return "placing";
+  if (interaction.value.type === "browsing") return "browsing";
+
+  // Default based on turn
+  return isMyTurn.value ? "idle" : "watching";
+});
+
 const myPieces = computed(() => {
   if (!game.value || !myColor.value) return [];
   return game.value.pieces[myColor.value];
@@ -157,7 +201,20 @@ const { isDragging, startDrag } = usePieceDrag(
   myColor,
   previewCells,
   (cells) => {
-    previewCells.value = cells;
+    // Update FSM state with new preview
+    if (interaction.value.type === "placing" && cells) {
+      // Find anchor from cells (first cell is typically the anchor)
+      const anchor: [number, number] = cells[0];
+      interaction.value = {
+        ...interaction.value,
+        preview: { anchor, cells },
+      };
+    } else if (interaction.value.type === "placing" && !cells) {
+      interaction.value = {
+        ...interaction.value,
+        preview: null,
+      };
+    }
   },
 );
 
@@ -339,29 +396,44 @@ function handleTakeoverCancel() {
   flowState.value = "selecting";
 }
 
-// Actions
+// FSM transition functions
+function openTray(tab: "mine" | "opponent" = "mine") {
+  interaction.value = { type: "browsing", tab };
+}
+
+function closeTray() {
+  interaction.value = { type: "idle" };
+}
+
+function switchTab(tab: "mine" | "opponent") {
+  if (interaction.value.type === "browsing") {
+    interaction.value = { ...interaction.value, tab };
+  }
+}
+
 function selectPiece(pieceId: number) {
   if (!myPieces.value.includes(pieceId)) return;
-  selectedPieceId.value = pieceId;
-  previewCells.value = null;
-  currentOrientationIndex.value = 0;
-  // Keep tray open on mobile so user can see piece controls
+  if (!isMyTurn.value) return;
+  interaction.value = { type: "placing", pieceId, orientation: 0, preview: null };
+}
+
+function changePiece() {
+  // Go back to browsing (tray opens, piece highlighted)
+  interaction.value = { type: "browsing", tab: "mine" };
 }
 
 function clearSelection() {
-  selectedPieceId.value = null;
-  previewCells.value = null;
-  currentOrientationIndex.value = 0;
+  interaction.value = { type: "idle" };
 }
 
 function handleBoardClick(row: number, col: number) {
   if (!game.value || !myColor.value || !isMyTurn.value) return;
-  if (selectedPieceId.value === null) return;
+  if (interaction.value.type !== "placing") return;
   if (isDragging.value) return; // Don't recompute when starting a drag
 
   const placements = findValidPlacementsAtAnchor(
     game.value.board as Board,
-    selectedPieceId.value,
+    interaction.value.pieceId,
     row,
     col,
     myColor.value,
@@ -370,72 +442,86 @@ function handleBoardClick(row: number, col: number) {
   if (placements.length > 0) {
     // Try to keep the current orientation if valid at this anchor
     const matchingOrientation = placements.find(
-      (p) => p.orientationIndex === currentOrientationIndex.value,
+      (p) => p.orientationIndex === interaction.value.orientation,
     );
     const placement = matchingOrientation || placements[0];
-    previewCells.value = placement.cells;
-    currentOrientationIndex.value = placement.orientationIndex;
+    const anchor: [number, number] = [row, col];
+    interaction.value = {
+      ...interaction.value,
+      orientation: placement.orientationIndex,
+      preview: { anchor, cells: placement.cells },
+    };
   }
 }
 
 function rotatePiece(direction: "cw" | "ccw") {
-  if (!game.value || !myColor.value || selectedPieceId.value === null) return;
+  if (!game.value || !myColor.value) return;
+  if (interaction.value.type !== "placing") return;
 
-  if (previewCells.value) {
+  const { pieceId, orientation, preview } = interaction.value;
+
+  if (preview) {
     const result = getNextValidOrientation(
       game.value.board as Board,
-      selectedPieceId.value,
-      previewCells.value,
+      pieceId,
+      preview.cells,
       myColor.value,
       direction,
     );
     if (result) {
-      previewCells.value = result.cells;
-      currentOrientationIndex.value = result.orientationIndex;
+      interaction.value = {
+        ...interaction.value,
+        orientation: result.orientationIndex,
+        preview: { anchor: preview.anchor, cells: result.cells },
+      };
     }
   } else {
-    const orientations = getAllOrientationsForPiece(selectedPieceId.value);
+    const orientations = getAllOrientationsForPiece(pieceId);
     const numOrientations = orientations.length;
-    if (direction === "cw") {
-      currentOrientationIndex.value =
-        (currentOrientationIndex.value + 1) % numOrientations;
-    } else {
-      currentOrientationIndex.value =
-        (currentOrientationIndex.value - 1 + numOrientations) % numOrientations;
-    }
+    const delta = direction === "cw" ? 1 : -1;
+    const newOrientation = (orientation + delta + numOrientations) % numOrientations;
+    interaction.value = {
+      ...interaction.value,
+      orientation: newOrientation,
+    };
   }
 }
 
 function flipPieceAction() {
-  if (!game.value || !myColor.value || selectedPieceId.value === null) return;
+  if (!game.value || !myColor.value) return;
+  if (interaction.value.type !== "placing") return;
 
-  if (previewCells.value) {
+  const { pieceId, preview } = interaction.value;
+
+  if (preview) {
     const result = getFlippedOrientation(
       game.value.board as Board,
-      selectedPieceId.value,
-      previewCells.value,
+      pieceId,
+      preview.cells,
       myColor.value,
     );
     if (result) {
-      previewCells.value = result.cells;
-      currentOrientationIndex.value = result.orientationIndex;
+      interaction.value = {
+        ...interaction.value,
+        orientation: result.orientationIndex,
+        preview: { anchor: preview.anchor, cells: result.cells },
+      };
     }
   }
 }
 
 async function confirmPlacement() {
-  if (!previewCells.value || selectedPieceId.value === null) return;
+  if (interaction.value.type !== "placing" || !interaction.value.preview) return;
 
   const result = await placePieceMutation.mutate({
     code: code.value,
     playerId: playerId.value,
-    pieceId: selectedPieceId.value,
-    cells: previewCells.value,
+    pieceId: interaction.value.pieceId,
+    cells: interaction.value.preview.cells,
   });
 
   if (result?.success) {
     clearSelection();
-    showMobileTray.value = false;
   }
 }
 
@@ -458,10 +544,15 @@ onMounted(() => {
     } else if (e.key === "f" || e.key === "F") {
       flipPieceAction();
     } else if (e.key === "Escape") {
-      if (previewCells.value) {
-        previewCells.value = null;
-      } else {
-        clearSelection();
+      if (interaction.value.type === "placing") {
+        if (interaction.value.preview) {
+          // Clear preview but stay in placing state
+          interaction.value = { ...interaction.value, preview: null };
+        } else {
+          clearSelection();
+        }
+      } else if (interaction.value.type === "browsing") {
+        closeTray();
       }
     }
   };
@@ -470,6 +561,13 @@ onMounted(() => {
   onUnmounted(() => {
     window.removeEventListener("keydown", handleKeydown);
   });
+});
+
+// Watch for turn changes - reset placing state when turn ends
+watch(isMyTurn, (myTurn, wasMyTurn) => {
+  if (wasMyTurn && !myTurn && interaction.value.type === "placing") {
+    interaction.value = { type: "idle" };
+  }
 });
 
 // Helper functions
@@ -526,7 +624,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
       <!-- Header (hidden on mobile when piece tray is open) -->
       <header
         class="items-center justify-between px-4 py-2 border-b border-default shrink-0"
-        :class="showMobileTray ? 'hidden md:flex' : 'flex'"
+        :class="interaction.type === 'browsing' ? 'hidden md:flex' : 'flex'"
       >
         <div class="flex items-center gap-2">
           <RouterLink to="/" class="text-lg font-bold"> Blokus Duo </RouterLink>
@@ -614,10 +712,10 @@ function rotateCW(cells: [number, number][]): [number, number][] {
           <!-- Board area -->
           <main
             class="flex flex-col items-center p-4 overflow-hidden"
-            :class="showMobileTray ? 'justify-start pt-2' : 'justify-center'"
+            :class="interaction.type === 'browsing' ? 'justify-start pt-2' : 'justify-center'"
           >
             <!-- Game status / Turn indicator (hidden on mobile when piece tray is open) -->
-            <div class="mb-8" :class="{ 'hidden md:block': showMobileTray }">
+            <div class="mb-8" :class="{ 'hidden md:block': interaction.type === 'browsing' }">
               <template v-if="game.status === 'finished'">
                 <div class="text-2xl font-bold text-center">
                   <span v-if="game.winner === 'draw'" class="text-muted"
@@ -704,15 +802,15 @@ function rotateCW(cells: [number, number][]): [number, number][] {
               "
               :show-anchors="isMyTurn && selectedPieceId !== null"
               :is-dragging="isDragging"
-              :compact="showMobileTray"
+              :compact="interaction.type === 'browsing'"
               :last-placement-cells="game.lastPlacement as [number, number][] | undefined"
               @cell-click="handleBoardClick"
               @drag-start="startDrag"
             />
 
-            <!-- Mobile: Inline piece tray (inside main for proper flex layout) -->
+            <!-- Mobile: Inline piece tray (browsing state) -->
             <div
-              v-if="showMobileTray"
+              v-if="interaction.type === 'browsing'"
               class="md:hidden w-full flex-1 flex flex-col border-t border-default mt-2 min-h-0"
             >
               <!-- Tabs -->
@@ -720,22 +818,22 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 <button
                   :class="[
                     'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
-                    !showOpponentPiecesMobile
+                    interaction.tab === 'mine'
                       ? 'border-b-2 border-primary text-primary'
                       : 'text-default-500 hover:text-default-700',
                   ]"
-                  @click="showOpponentPiecesMobile = false"
+                  @click="switchTab('mine')"
                 >
                   Mine
                 </button>
                 <button
                   :class="[
                     'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
-                    showOpponentPiecesMobile
+                    interaction.tab === 'opponent'
                       ? 'border-b-2 border-primary text-primary'
                       : 'text-default-500 hover:text-default-700',
                   ]"
-                  @click="showOpponentPiecesMobile = true"
+                  @click="switchTab('opponent')"
                 >
                   {{ opponentName }}
                 </button>
@@ -743,7 +841,7 @@ function rotateCW(cells: [number, number][]): [number, number][] {
               <!-- Tab content -->
               <div class="flex-1 overflow-y-auto">
                 <PieceTray
-                  v-if="!showOpponentPiecesMobile"
+                  v-if="interaction.tab === 'mine'"
                   :pieces="myPieces"
                   :player-color="myColor || 'blue'"
                   :selected-piece-id="selectedPieceId"
@@ -760,6 +858,69 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                   horizontal
                   @select="() => {}"
                 />
+              </div>
+            </div>
+
+            <!-- Mobile: Placement controls (placing state) -->
+            <div
+              v-if="mobileUIState === 'placing'"
+              class="md:hidden w-full border-t border-default mt-2 p-4"
+            >
+              <div class="flex flex-col gap-3 max-w-sm mx-auto">
+                <!-- Preview + manipulation row -->
+                <div class="flex items-center justify-center gap-3">
+                  <PieceMiniPreview
+                    :piece-id="selectedPieceId!"
+                    :player-color="myColor || 'blue'"
+                    :orientation-index="currentOrientationIndex"
+                    class="w-12 h-12"
+                  />
+                  <UButton
+                    icon="i-lucide-rotate-ccw"
+                    size="lg"
+                    variant="outline"
+                    title="Rotate counter-clockwise"
+                    @click="rotatePiece('ccw')"
+                  />
+                  <UButton
+                    icon="i-lucide-rotate-cw"
+                    size="lg"
+                    variant="outline"
+                    title="Rotate clockwise (R)"
+                    @click="rotatePiece('cw')"
+                  />
+                  <UButton
+                    icon="i-lucide-flip-horizontal"
+                    size="lg"
+                    variant="outline"
+                    title="Flip (F)"
+                    @click="flipPieceAction"
+                  />
+                </div>
+                <!-- Confirm (only when preview active) -->
+                <UButton
+                  v-if="previewCells"
+                  color="primary"
+                  size="lg"
+                  block
+                  @click="confirmPlacement"
+                >
+                  Confirm Placement
+                </UButton>
+                <!-- Change piece / Deselect row -->
+                <div class="flex gap-2">
+                  <UButton
+                    variant="outline"
+                    size="lg"
+                    class="flex-1"
+                    @click="changePiece"
+                  >
+                    Change Piece
+                  </UButton>
+                  <UButton variant="ghost" @click="clearSelection">
+                    Deselect
+                  </UButton>
+                </div>
               </div>
             </div>
           </main>
@@ -789,28 +950,42 @@ function rotateCW(cells: [number, number][]): [number, number][] {
         <!-- Controls bar (bottom) -->
         <footer class="border-t border-default p-4 lg:py-2 shrink-0">
           <div class="flex items-center justify-center gap-2 flex-wrap">
-            <!-- Mobile: Select piece button -->
+            <!-- Mobile: Select piece button (idle state) -->
             <UButton
-              v-if="isMyTurn && selectedPieceId === null && !showMobileTray"
+              v-if="mobileUIState === 'idle'"
               class="md:hidden"
-              @click="showMobileTray = true"
+              @click="openTray('mine')"
             >
               Select Piece
             </UButton>
 
-            <!-- Mobile: Hide tray button (when tray is visible but no piece selected) -->
+            <!-- Mobile: Hide tray button (browsing state) -->
             <UButton
-              v-if="showMobileTray && selectedPieceId === null"
+              v-if="mobileUIState === 'browsing'"
               class="md:hidden"
               variant="outline"
-              @click="showMobileTray = false"
+              @click="closeTray"
             >
               Hide
             </UButton>
 
-            <!-- Selected piece controls -->
+            <!-- Mobile: View Pieces button (watching/finished state) -->
+            <UButton
+              v-if="(mobileUIState === 'watching' || mobileUIState === 'finished') && interaction.type === 'idle'"
+              class="md:hidden"
+              variant="outline"
+              size="sm"
+              @click="openTray('mine')"
+            >
+              View Pieces
+            </UButton>
+
+            <!-- Desktop: Selected piece controls (hidden on mobile when placing) -->
             <template v-if="selectedPieceId !== null">
-              <div class="flex items-center gap-1">
+              <div
+                class="flex items-center gap-1"
+                :class="{ 'hidden md:flex': mobileUIState === 'placing' }"
+              >
                 <PieceMiniPreview
                   :piece-id="selectedPieceId"
                   :player-color="myColor || 'blue'"
@@ -818,7 +993,10 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                   class="w-10 h-10"
                 />
               </div>
-              <div class="flex items-center gap-1">
+              <div
+                class="flex items-center gap-1"
+                :class="{ 'hidden md:flex': mobileUIState === 'placing' }"
+              >
                 <UButton
                   icon="i-lucide-rotate-ccw"
                   variant="outline"
@@ -842,23 +1020,31 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 />
               </div>
 
-              <!-- Confirm/Cancel when preview is active -->
+              <!-- Confirm/Cancel when preview is active (desktop only) -->
               <template v-if="previewCells">
-                <UButton color="primary" @click="confirmPlacement">
+                <UButton
+                  color="primary"
+                  :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                  @click="confirmPlacement"
+                >
                   Confirm
                 </UButton>
-                <UButton variant="outline" @click="previewCells = null">
+                <UButton
+                  variant="outline"
+                  :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                  @click="interaction.type === 'placing' && (interaction = { ...interaction, preview: null })"
+                >
                   Cancel
                 </UButton>
               </template>
 
-              <!-- Change piece button (shows tray on mobile/tablet) -->
+              <!-- Change piece button (tablet only, hidden on mobile and lg+) -->
               <UButton
-                v-if="!previewCells && !showMobileTray"
+                v-if="!previewCells && interaction.type === 'placing'"
                 variant="ghost"
                 size="sm"
-                class="lg:hidden"
-                @click="showMobileTray = true"
+                class="hidden md:inline-flex lg:hidden"
+                @click="changePiece"
               >
                 Change
               </UButton>
@@ -866,10 +1052,8 @@ function rotateCW(cells: [number, number][]): [number, number][] {
                 v-if="!previewCells"
                 variant="ghost"
                 size="sm"
-                @click="
-                  clearSelection();
-                  showMobileTray = false;
-                "
+                :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                @click="clearSelection"
               >
                 Deselect
               </UButton>
