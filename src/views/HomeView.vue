@@ -102,7 +102,7 @@ function openCreateDialog() {
                     class="w-3 h-3 rounded-full"
                     :class="game.myColor === 'blue' ? 'bg-blue-500' : 'bg-orange-500'"
                   />
-                  <span class="font-mono font-medium">{{ game.code }}</span>
+                  <span class="font-medium">{{ game.opponentName || 'Waiting for opponent...' }}</span>
                 </div>
                 <span
                   v-if="game.status === 'playing'"
@@ -118,8 +118,8 @@ function openCreateDialog() {
                   Waiting
                 </span>
               </div>
-              <div class="text-sm text-muted mt-1 text-left">
-                vs {{ game.opponentName || 'Waiting for opponent...' }}
+              <div class="text-sm text-muted mt-1 text-left font-mono">
+                {{ game.code }}
               </div>
             </RouterLink>
           </li>
