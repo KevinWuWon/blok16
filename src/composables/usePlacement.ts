@@ -6,6 +6,7 @@ import {
   type Board,
   type PlayerColor,
 } from "../../lib/validation";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 type InteractionState =
   | { type: "idle" }
@@ -17,8 +18,24 @@ type InteractionState =
       preview: { anchor: [number, number]; cells: [number, number][] } | null;
     };
 
+type PlacePieceMutation = {
+  mutate: (args: {
+    code: string;
+    playerId: string;
+    pieceId: number;
+    cells: [number, number][];
+  }) => Promise<{ success: boolean } | null>;
+};
+
+type PassTurnMutation = {
+  mutate: (args: {
+    code: string;
+    playerId: string;
+  }) => Promise<{ success: boolean } | null>;
+};
+
 export function usePlacement(
-  game: Ref<any>,
+  game: Ref<Doc<"games"> | null | undefined>,
   myColor: Ref<PlayerColor | null>,
   myPieces: Ref<number[]>,
   isMyTurn: Ref<boolean>,
@@ -26,8 +43,8 @@ export function usePlacement(
   interaction: Ref<InteractionState>,
   code: Ref<string>,
   playerId: Ref<string>,
-  placePieceMutation: any,
-  passTurnMutation: any,
+  placePieceMutation: PlacePieceMutation,
+  passTurnMutation: PassTurnMutation,
   clearSelection: () => void,
 ) {
   // Valid anchors computation

@@ -52,12 +52,9 @@ const {
   game,
   isLoading,
   myColor,
-  isSpectator,
   isMyTurn,
   myPieces,
   opponentPieces,
-  blueName,
-  orangeName,
   opponentName,
   blueDisplayName,
   orangeDisplayName,
@@ -210,8 +207,14 @@ async function copyLink() {
 <template>
   <div class="h-dvh flex flex-col overflow-hidden">
     <!-- Loading state -->
-    <div v-if="isLoading" class="flex-1 flex items-center justify-center">
-      <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin" />
+    <div
+      v-if="isLoading"
+      class="flex-1 flex items-center justify-center"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="w-8 h-8 animate-spin"
+      />
     </div>
 
     <!-- Game not found -->
@@ -219,9 +222,15 @@ async function copyLink() {
       v-else-if="!game"
       class="flex-1 flex flex-col items-center justify-center p-4"
     >
-      <h1 class="text-2xl font-bold mb-4">Game Not Found</h1>
-      <p class="text-muted mb-4">The game code "{{ code }}" doesn't exist.</p>
-      <UButton to="/"> Back to Home </UButton>
+      <h1 class="text-2xl font-bold mb-4">
+        Game Not Found
+      </h1>
+      <p class="text-muted mb-4">
+        The game code "{{ code }}" doesn't exist.
+      </p>
+      <UButton to="/">
+        Back to Home
+      </UButton>
     </div>
 
     <!-- Game view -->
@@ -232,8 +241,16 @@ async function copyLink() {
         :class="interaction.type === 'browsing' ? 'hidden md:flex' : 'flex'"
       >
         <div class="flex items-center gap-2">
-          <RouterLink to="/" class="text-lg font-bold"> Blokus Duo </RouterLink>
-          <UBadge variant="subtle" color="neutral">
+          <RouterLink
+            to="/"
+            class="text-lg font-bold"
+          >
+            Blokus Duo
+          </RouterLink>
+          <UBadge
+            variant="subtle"
+            color="neutral"
+          >
             {{ code }}
           </UBadge>
         </div>
@@ -277,12 +294,26 @@ async function copyLink() {
         class="flex-1 flex flex-col items-center justify-center p-4"
       >
         <div class="text-center space-y-4">
-          <UIcon name="i-lucide-users" class="w-12 h-12 mx-auto text-muted" />
-          <h2 class="text-xl font-semibold">Waiting for opponent...</h2>
-          <p class="text-muted">Share this link with a friend:</p>
+          <UIcon
+            name="i-lucide-users"
+            class="w-12 h-12 mx-auto text-muted"
+          />
+          <h2 class="text-xl font-semibold">
+            Waiting for opponent...
+          </h2>
+          <p class="text-muted">
+            Share this link with a friend:
+          </p>
           <div class="flex items-center gap-2 justify-center">
-            <UInput :value="gameUrl" readonly class="w-64" />
-            <UButton icon="i-lucide-copy" @click="copyLink" />
+            <UInput
+              :value="gameUrl"
+              readonly
+              class="w-64"
+            />
+            <UButton
+              icon="i-lucide-copy"
+              @click="copyLink"
+            />
           </div>
         </div>
       </div>
@@ -320,12 +351,16 @@ async function copyLink() {
             :class="interaction.type === 'browsing' ? 'justify-start pt-2' : 'justify-center'"
           >
             <!-- Game status / Turn indicator (hidden on mobile when piece tray is open) -->
-            <div class="mb-8" :class="{ 'hidden md:block': interaction.type === 'browsing' }">
+            <div
+              class="mb-8"
+              :class="{ 'hidden md:block': interaction.type === 'browsing' }"
+            >
               <template v-if="game.status === 'finished'">
                 <div class="text-2xl font-bold text-center">
-                  <span v-if="game.winner === 'draw'" class="text-muted"
-                    >Draw!</span
-                  >
+                  <span
+                    v-if="game.winner === 'draw'"
+                    class="text-muted"
+                  >Draw!</span>
                   <span
                     v-else
                     :class="
@@ -362,8 +397,7 @@ async function copyLink() {
                           ? 'text-blue-600 dark:text-blue-400'
                           : 'text-blue-500'
                       "
-                      >{{ blueDisplayName }}</span
-                    >
+                    >{{ blueDisplayName }}</span>
                   </div>
 
                   <!-- Orange Player -->
@@ -388,8 +422,7 @@ async function copyLink() {
                           ? 'text-orange-600 dark:text-orange-400'
                           : 'text-orange-500'
                       "
-                      >{{ orangeDisplayName }}</span
-                    >
+                    >{{ orangeDisplayName }}</span>
                   </div>
                 </div>
               </template>
@@ -408,7 +441,7 @@ async function copyLink() {
               :show-anchors="isMyTurn && selectedPieceId !== null"
               :is-dragging="isDragging"
               :compact="interaction.type === 'browsing'"
-              :last-placement-cells="game.lastPlacement as [number, number][] | undefined"
+              :last-placement-cells="(game.lastPlacement as [number, number][])"
               @cell-click="handleBoardClick"
               @drag-start="startDrag"
             />

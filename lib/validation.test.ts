@@ -23,7 +23,7 @@ import {
   STARTING_POSITIONS,
   BOARD_SIZE,
 } from './validation'
-import { PIECES } from './pieces'
+// PIECES is available via pieces.ts - tests use hardcoded piece IDs for clarity
 
 describe('findNearestValidAnchor', () => {
   it('returns null for empty anchor list', () => {
@@ -1329,7 +1329,7 @@ describe('Game Scenarios', () => {
   describe('Opening moves', () => {
     it('Blue opens with I5 at starting position - valid placement and correct anchors', () => {
       const board = createEmptyBoard()
-      const pieceId = 9 // I5 - 5 cells horizontal
+      // Using I5 (piece index 9) - 5 cells horizontal
 
       // I5 horizontal at (4,4) to (4,8)
       const i5Cells: [number, number][] = [[4, 4], [4, 5], [4, 6], [4, 7], [4, 8]]
@@ -1362,7 +1362,7 @@ describe('Game Scenarios', () => {
 
     it('Orange opens with L5 at starting position - valid placement and correct anchors', () => {
       const board = createEmptyBoard()
-      const pieceId = 10 // L5
+      // Using L5 (piece index 10)
 
       // L5 vertical with horizontal tail at bottom: covers (9,9) down to (12,9) then right to (12,10)
       // Shape:
@@ -1702,8 +1702,7 @@ describe('Game Scenarios', () => {
 
       // At this point the board is complex - let's just verify the function works
       // by checking if hasValidMoves returns false when remaining pieces can't fit
-      const blueRemaining = [0] // Only I1
-      const orangeRemaining = [0] // Only I1
+      const blueRemaining = [0] // Only I1 (both players would have same piece)
 
       // Check if blue has valid anchors
       const blueAnchors = findCornerAnchors(board, 'blue')

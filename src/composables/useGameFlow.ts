@@ -1,4 +1,6 @@
 import { ref, computed, watch, type Ref } from "vue";
+import type { Doc } from "../../convex/_generated/dataModel";
+import type { useGameRole, GameRole } from "./useGameRole";
 
 // Game flow state machine
 type GameFlowState =
@@ -20,14 +22,28 @@ type MobileUIState =
 
 type InteractionType = "idle" | "browsing" | "placing";
 
+type ClaimColorMutation = {
+  mutate: (args: {
+    code: string;
+    playerId: string;
+    playerName: string;
+    color: "blue" | "orange";
+    forceTakeover?: boolean;
+  }) => Promise<{
+    success: boolean;
+    requiresConfirmation?: boolean;
+    currentPlayerName?: string;
+  } | null>;
+};
+
 export function useGameFlow(
-  game: Ref<any>,
-  role: Ref<string | null>,
+  game: Ref<Doc<"games"> | null | undefined>,
+  role: Ref<GameRole | null>,
   isLoading: Ref<boolean>,
   isMyTurn: Ref<boolean>,
   interactionType: Ref<InteractionType>,
-  gameRoleComposable: Ref<any>,
-  claimColorMutation: any,
+  gameRoleComposable: Ref<ReturnType<typeof useGameRole>>,
+  claimColorMutation: ClaimColorMutation,
   code: Ref<string>,
   playerId: Ref<string>,
 ) {

@@ -8,10 +8,8 @@ import {
   playerToValue,
   isValidPlacement,
   hasValidMoves,
-  calculateScore,
   determineWinner,
   type PlayerColor,
-  type Board,
 } from "./shared/validation";
 
 // Helper to schedule push notification

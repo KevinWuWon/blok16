@@ -126,10 +126,18 @@ function joinGame() {
       </div>
 
       <!-- My Active Games -->
-      <div v-if="myGames && myGames.length > 0" class="w-full max-w-sm">
-        <h2 class="text-lg font-semibold mb-3 text-left">My Games</h2>
+      <div
+        v-if="myGames && myGames.length > 0"
+        class="w-full max-w-sm"
+      >
+        <h2 class="text-lg font-semibold mb-3 text-left">
+          My Games
+        </h2>
         <ul class="space-y-2">
-          <li v-for="game in myGames" :key="game.code">
+          <li
+            v-for="game in myGames"
+            :key="game.code"
+          >
             <RouterLink
               :to="`/game/${game.code}`"
               class="block p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
@@ -242,11 +250,14 @@ function joinGame() {
               size="xl"
               placeholder="Enter code or paste game URL"
               autofocus
-              @keyup.enter="joinGame"
               class="w-full"
+              @keyup.enter="joinGame"
             />
           </UFormField>
-          <p v-if="joinError" class="text-sm text-red-500">
+          <p
+            v-if="joinError"
+            class="text-sm text-red-500"
+          >
             {{ joinError }}
           </p>
         </div>

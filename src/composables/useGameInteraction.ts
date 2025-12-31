@@ -7,6 +7,7 @@ import {
   type PlayerColor,
 } from "../../lib/validation";
 import { PIECES, normalize, flipH, rotateCW } from "../../lib/pieces";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 // Interaction FSM state types
 type PreviewData = { anchor: [number, number]; cells: [number, number][] };
@@ -21,7 +22,7 @@ type InteractionState =
     };
 
 export function useGameInteraction(
-  game: Ref<any>,
+  game: Ref<Doc<"games"> | null | undefined>,
   myColor: Ref<PlayerColor | null>,
   myPieces: Ref<number[]>,
   isMyTurn: Ref<boolean>,

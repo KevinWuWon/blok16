@@ -88,7 +88,9 @@ function handleClose() {
           <div class="flex items-center gap-3">
             <div class="w-4 h-4 rounded-full bg-blue-500" />
             <div>
-              <div class="font-medium">Blue Player</div>
+              <div class="font-medium">
+                Blue Player
+              </div>
               <div class="text-sm text-muted">
                 {{ blueName || 'Available' }}
               </div>
@@ -109,7 +111,9 @@ function handleClose() {
           <div class="flex items-center gap-3">
             <div class="w-4 h-4 rounded-full bg-orange-500" />
             <div>
-              <div class="font-medium">Orange Player</div>
+              <div class="font-medium">
+                Orange Player
+              </div>
               <div class="text-sm text-muted">
                 {{ orangeName || 'Available' }}
               </div>
@@ -128,7 +132,9 @@ function handleClose() {
               class="w-4 h-4 text-muted"
             />
             <div>
-              <div class="font-medium">Spectator</div>
+              <div class="font-medium">
+                Spectator
+              </div>
               <div class="text-sm text-muted">
                 Watch the game
               </div>
