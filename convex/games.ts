@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 import { PIECES } from "./shared/pieces";
@@ -16,8 +16,7 @@ import {
 
 // Helper to schedule push notification
 async function schedulePushNotification(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  scheduler: any,
+  scheduler: MutationCtx["scheduler"],
   playerId: string,
   title: string,
   body: string,
