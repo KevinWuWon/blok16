@@ -24,7 +24,7 @@ export const sendPushNotification = action({
     }
 
     // Get VAPID keys from environment
-    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY;
     const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
     const vapidEmail = process.env.VAPID_CONTACT_EMAIL || "mailto:admin@example.com";
 
