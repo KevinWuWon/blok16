@@ -69,6 +69,13 @@ export function flipH(cells: [number, number][]): [number, number][] {
   return normalize(flipped);
 }
 
+// Flip piece vertically
+export function flipV(cells: [number, number][]): [number, number][] {
+  // Flip: (r, c) -> (-r, c)
+  const flipped = cells.map(([r, c]) => [-r, c] as [number, number]);
+  return normalize(flipped);
+}
+
 // Convert cells to a string key for deduplication
 function cellsToKey(cells: [number, number][]): string {
   const sorted = [...cells].sort((a, b) => a[0] - b[0] || a[1] - b[1]);

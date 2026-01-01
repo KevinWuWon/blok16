@@ -2,7 +2,7 @@
 // Core validation logic is re-exported from convex/shared/validation.ts
 // This file adds client-specific functionality like piece rotation/flipping during preview
 
-import { PIECES, getAllOrientations, translateCells, normalize, rotateCW, flipH } from "./pieces";
+import { PIECES, getAllOrientations, translateCells, normalize, rotateCW, flipH, flipV } from "./pieces";
 import {
   type PlayerColor,
   type Board,
@@ -110,12 +110,29 @@ export function getNextValidOrientation(
 }
 
 // Get the flipped (horizontally mirrored) version of the current placement
+// If horizontal flip doesn't find a valid placement, tries vertical flip as fallback
 // Returns both cells and orientation index for proper tracking
 export function getFlippedOrientation(
   board: Board,
   pieceId: number,
   currentCells: [number, number][],
   player: PlayerColor
+): { cells: [number, number][]; orientationIndex: number } | null {
+  // Try horizontal flip first
+  const hResult = tryFlipOrientation(board, pieceId, currentCells, player, flipH);
+  if (hResult) return hResult;
+
+  // Fall back to vertical flip
+  return tryFlipOrientation(board, pieceId, currentCells, player, flipV);
+}
+
+// Helper to try a specific flip transformation
+function tryFlipOrientation(
+  board: Board,
+  pieceId: number,
+  currentCells: [number, number][],
+  player: PlayerColor,
+  flipFn: (cells: [number, number][]) => [number, number][]
 ): { cells: [number, number][]; orientationIndex: number } | null {
   const piece = PIECES[pieceId];
   const allOrientations = getAllOrientations(piece.cells);
@@ -129,7 +146,7 @@ export function getFlippedOrientation(
 
   // Normalize and flip the cells
   const normalizedCurrent = normalize(currentCells);
-  const flippedNormalized = flipH(normalizedCurrent);
+  const flippedNormalized = flipFn(normalizedCurrent);
 
   // Get the center of the flipped normalized piece
   const flippedNormalizedCenter = getCellsCenter(flippedNormalized);

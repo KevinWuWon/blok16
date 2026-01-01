@@ -9,6 +9,7 @@ export {
   rotateCW,
   rotateCCW,
   flipH,
+  flipV,
   getAllOrientations,
   getBoundingBox,
   translateCells,
