@@ -1,17 +1,32 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import PieceMiniPreview from './PieceMiniPreview.vue'
+import { canPlacePiece, type Board, type PlayerColor } from '../../lib/validation'
 
-defineProps<{
+const props = defineProps<{
   pieces: number[]
-  playerColor: "blue" | "orange"
+  playerColor: PlayerColor
   selectedPieceId: number | null
   disabled: boolean
   horizontal?: boolean
+  board?: Board
 }>()
 
 const emit = defineEmits<{
   select: [pieceId: number]
 }>()
+
+// Compute which pieces can be placed on the board
+const unplayablePieces = computed(() => {
+  if (!props.board) return new Set<number>()
+  const unplayable = new Set<number>()
+  for (const pieceId of props.pieces) {
+    if (!canPlacePiece(props.board, pieceId, props.playerColor)) {
+      unplayable.add(pieceId)
+    }
+  }
+  return unplayable
+})
 </script>
 
 <template>
@@ -31,7 +46,8 @@ const emit = defineEmits<{
         selectedPieceId === pieceId
           ? 'ring-2 ring-primary bg-primary/10'
           : 'bg-transparent',
-        disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+        unplayablePieces.has(pieceId) ? 'opacity-50' : ''
       ]"
       @click="!disabled && emit('select', pieceId)"
     >

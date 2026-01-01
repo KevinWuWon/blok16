@@ -360,6 +360,7 @@ function copyLink() {
                 :player-color="myColor || 'blue'"
                 :selected-piece-id="selectedPieceId"
                 :disabled="!isMyTurn"
+                :board="game.board as Board"
                 horizontal
                 @select="selectPiece"
               />
@@ -505,6 +506,7 @@ function copyLink() {
                   :player-color="myColor || 'blue'"
                   :selected-piece-id="selectedPieceId"
                   :disabled="!isMyTurn"
+                  :board="game.board as Board"
                   horizontal
                   @select="selectPiece"
                 />
@@ -514,6 +516,7 @@ function copyLink() {
                   :player-color="myColor === 'blue' ? 'orange' : 'blue'"
                   :selected-piece-id="null"
                   :disabled="true"
+                  :board="game.board as Board"
                   horizontal
                   @select="() => {}"
                 />
@@ -590,6 +593,7 @@ function copyLink() {
                 :player-color="myColor === 'blue' ? 'orange' : 'blue'"
                 :selected-piece-id="null"
                 :disabled="true"
+                :board="game.board as Board"
                 horizontal
                 @select="() => {}"
               />
