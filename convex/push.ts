@@ -89,17 +89,28 @@ export const hasSubscription = query({
   },
 });
 
-// Check if a specific endpoint (device) is registered
+// Check if a specific endpoint (device) is registered for a player/game
 export const hasSubscriptionForEndpoint = query({
   args: {
     endpoint: v.string(),
+    playerId: v.optional(v.string()),
+    gameCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const subscription = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_endpoint", (q) => q.eq("endpoint", args.endpoint))
       .first();
-    return !!subscription;
+    if (!subscription) {
+      return false;
+    }
+    if (args.playerId && subscription.playerId !== args.playerId) {
+      return false;
+    }
+    if (args.gameCode && subscription.gameCode !== args.gameCode) {
+      return false;
+    }
+    return true;
   },
 });
 

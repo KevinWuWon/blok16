@@ -160,7 +160,7 @@ const notificationDialogOpen = ref(false);
 
 // Bell icon based on permission state
 const bellIcon = computed(() => {
-  if (!notificationsSupported) return "i-lucide-bell-off";
+  if (!notificationsSupported || !isPushSupported) return "i-lucide-bell-off";
   if (notificationPermission.value === "denied") return "i-lucide-bell-off";
   if (notificationPermission.value === "granted") return "i-lucide-bell-ring";
   return "i-lucide-bell";

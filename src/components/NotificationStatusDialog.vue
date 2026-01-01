@@ -26,11 +26,16 @@ const {
 
 const currentEndpoint = ref<string | null>(null);
 const isLoading = ref(false);
+const isPlayerReady = computed(() => props.playerId.trim().length > 0);
 
 // Query backend for endpoint registration - uses sentinel when no endpoint
 const { data: isDeviceRegistered } = useConvexQuery(
   api.push.hasSubscriptionForEndpoint,
-  () => ({ endpoint: currentEndpoint.value || "__none__" })
+  () => ({
+    endpoint: currentEndpoint.value || "__none__",
+    playerId: isPlayerReady.value ? props.playerId : undefined,
+    gameCode: props.gameCode || undefined,
+  })
 );
 
 // Only trust the result when we have a real endpoint
@@ -117,7 +122,12 @@ const statusConfig = computed(() => {
   }
 });
 
+const showPushWarning = computed(() => !isPushSupported);
+
 async function handleAction() {
+  if (!isPlayerReady.value) {
+    return;
+  }
   isLoading.value = true;
   try {
     const subscription = await subscribeToPush();
@@ -145,6 +155,25 @@ function handleClose() {
   >
     <template #body>
       <div class="flex flex-col items-center text-center py-4 space-y-4">
+        <div
+          v-if="showPushWarning"
+          class="w-full rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100"
+        >
+          <div class="flex items-start gap-2">
+            <UIcon
+              name="i-lucide-triangle-alert"
+              class="w-4 h-4 mt-0.5 text-amber-600 dark:text-amber-300"
+            />
+            <div class="space-y-1">
+              <p class="font-semibold">
+                Push not supported here
+              </p>
+              <p class="text-amber-800/90 dark:text-amber-100/80">
+                Notifications only work in supported browsers. If you're on iOS, install to Home Screen and open from the app icon.
+              </p>
+            </div>
+          </div>
+        </div>
         <!-- Status Icon -->
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center"
@@ -176,10 +205,17 @@ function handleClose() {
           v-if="statusConfig.actionLabel"
           size="xl"
           :loading="isLoading"
+          :disabled="!isPlayerReady"
           @click="handleAction"
         >
           {{ statusConfig.actionLabel }}
         </UButton>
+        <p
+          v-if="statusConfig.actionLabel && !isPlayerReady"
+          class="text-xs text-muted"
+        >
+          Loading device identity. Please try again in a moment.
+        </p>
 
         <!-- Done button when working -->
         <UButton

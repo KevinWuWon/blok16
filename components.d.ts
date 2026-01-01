@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Board: typeof import('./src/components/Board.vue')['default']
+    NotificationStatusDialog: typeof import('./src/components/NotificationStatusDialog.vue')['default']
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
     RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
