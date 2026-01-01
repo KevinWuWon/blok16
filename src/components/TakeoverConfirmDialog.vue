@@ -45,12 +45,14 @@ function handleCancel() {
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton
+          size="xl"
           variant="ghost"
           @click="handleCancel"
         >
           Cancel
         </UButton>
         <UButton
+          size="xl"
           color="warning"
           @click="handleConfirm"
         >

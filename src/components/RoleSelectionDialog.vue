@@ -169,6 +169,7 @@ function handleClose() {
         <UFormField label="Your Name">
           <UInput
             v-model="playerName"
+            size="xl"
             placeholder="Enter your name"
             autofocus
             @keyup.enter="confirmName"
@@ -176,6 +177,7 @@ function handleClose() {
         </UFormField>
 
         <UButton
+          size="xl"
           block
           :disabled="!playerName.trim()"
           @click="confirmName"

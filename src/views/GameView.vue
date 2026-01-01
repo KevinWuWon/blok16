@@ -232,7 +232,10 @@ function copyLink() {
       <p class="text-muted mb-4">
         The game code "{{ code }}" doesn't exist.
       </p>
-      <UButton to="/">
+      <UButton
+        size="xl"
+        to="/"
+      >
         Back to Home
       </UButton>
     </div>
@@ -264,7 +267,7 @@ function copyLink() {
           <UButton
             v-if="showNotificationButton"
             variant="ghost"
-            size="sm"
+            size="xl"
             :icon="
               notificationPermission === 'denied'
                 ? 'i-lucide-bell-off'
@@ -286,7 +289,7 @@ function copyLink() {
               <UButton
                 :color="copied ? 'success' : 'neutral'"
                 variant="outline"
-                size="sm"
+                size="xl"
                 :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
                 @click="copyLink"
               >
@@ -317,6 +320,7 @@ function copyLink() {
           <div class="flex items-center gap-2 justify-center">
             <UInput
               :value="gameUrl"
+              size="xl"
               readonly
               class="w-64"
             />
@@ -325,6 +329,7 @@ function copyLink() {
               :open="copied ? true : undefined"
             >
               <UButton
+                size="xl"
                 :color="copied ? 'success' : 'neutral'"
                 :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
                 @click="copyLink"
@@ -647,21 +652,21 @@ function copyLink() {
                 <UButton
                   icon="i-lucide-rotate-ccw"
                   variant="outline"
-                  size="sm"
+                  size="xl"
                   title="Rotate (R)"
                   @click="rotatePiece('ccw')"
                 />
                 <UButton
                   icon="i-lucide-rotate-cw"
                   variant="outline"
-                  size="sm"
+                  size="xl"
                   title="Rotate (R)"
                   @click="rotatePiece('cw')"
                 />
                 <UButton
                   icon="i-lucide-flip-horizontal"
                   variant="outline"
-                  size="sm"
+                  size="xl"
                   title="Flip (F)"
                   @click="flipPieceAction"
                 />
@@ -670,6 +675,7 @@ function copyLink() {
               <!-- Confirm/Cancel when preview is active (desktop only) -->
               <template v-if="previewCells">
                 <UButton
+                  size="xl"
                   color="primary"
                   :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
                   @click="confirmPlacement"
@@ -677,6 +683,7 @@ function copyLink() {
                   Confirm
                 </UButton>
                 <UButton
+                  size="xl"
                   variant="outline"
                   :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
                   @click="interaction.type === 'placing' && (interaction = { ...interaction, preview: null })"
@@ -689,7 +696,7 @@ function copyLink() {
               <UButton
                 v-if="!previewCells && interaction.type === 'placing'"
                 variant="ghost"
-                size="sm"
+                size="xl"
                 class="hidden md:inline-flex lg:hidden"
                 @click="changePiece"
               >
@@ -698,7 +705,7 @@ function copyLink() {
               <UButton
                 v-if="!previewCells"
                 variant="ghost"
-                size="sm"
+                size="xl"
                 :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
                 @click="clearSelection"
               >
@@ -709,6 +716,7 @@ function copyLink() {
             <!-- Pass button -->
             <UButton
               v-if="canPass && !previewCells"
+              size="xl"
               variant="outline"
               color="warning"
               @click="passTurnAction"

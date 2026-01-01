@@ -183,6 +183,7 @@ function joinGame() {
           <UFormField label="Your Name">
             <UInput
               v-model="playerName"
+              size="xl"
               placeholder="Enter your name"
               autofocus
             />
@@ -221,12 +222,14 @@ function joinGame() {
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton
+            size="xl"
             variant="ghost"
             @click="showCreateDialog = false"
           >
             Cancel
           </UButton>
           <UButton
+            size="xl"
             :loading="isCreating"
             :disabled="!playerName.trim()"
             @click="createGame"
