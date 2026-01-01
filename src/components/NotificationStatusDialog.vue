@@ -27,13 +27,17 @@ const {
 const currentEndpoint = ref<string | null>(null);
 const isLoading = ref(false);
 
-// Query backend for endpoint registration
-const isDeviceRegistered = useConvexQuery(
+// Query backend for endpoint registration - uses sentinel when no endpoint
+const { data: isDeviceRegistered } = useConvexQuery(
   api.push.hasSubscriptionForEndpoint,
-  computed(() =>
-    currentEndpoint.value ? { endpoint: currentEndpoint.value } : "skip"
-  )
+  () => ({ endpoint: currentEndpoint.value || "__none__" })
 );
+
+// Only trust the result when we have a real endpoint
+const isRegisteredOnServer = computed(() => {
+  if (!currentEndpoint.value) return false;
+  return isDeviceRegistered.value === true;
+});
 
 // Refresh endpoint when dialog opens
 watch(
@@ -59,7 +63,7 @@ const status = computed<Status>(() => {
   if (!isSupported || !isPushSupported) return "unsupported";
   if (permission.value === "denied") return "denied";
   if (permission.value !== "granted") return "not-setup";
-  if (!isDeviceRegistered.value) return "not-registered";
+  if (!isRegisteredOnServer.value) return "not-registered";
   return "working";
 });
 
