@@ -333,26 +333,32 @@ export const placePiece = mutation({
 
     let newStatus: "waiting" | "playing" | "finished" = game.status;
     let newWinner: "blue" | "orange" | "draw" | null = game.winner;
+    let nextTurnFinal: "blue" | "orange" = nextTurn;
+    let nextLastPassedBy: "blue" | "orange" | null = null;
 
     if (!opponentCanMove && !currentCanMove) {
       // Game over
       newStatus = "finished";
       newWinner = determineWinner(newPieces.blue, newPieces.orange);
+    } else if (!opponentCanMove && currentCanMove) {
+      // Opponent has no moves; auto-skip their turn back to the current player.
+      nextTurnFinal = playerColor;
+      nextLastPassedBy = nextTurn;
     }
 
     await ctx.db.patch(game._id, {
       board: newBoard,
       pieces: newPieces,
-      currentTurn: nextTurn,
+      currentTurn: nextTurnFinal,
       status: newStatus,
       winner: newWinner,
-      lastPassedBy: null,
+      lastPassedBy: newStatus === "playing" ? nextLastPassedBy : null,
       lastPlacement: args.cells,
     });
 
     // Send push notification to the next player (if game is still playing)
     if (newStatus === "playing") {
-      const nextPlayer = game.players[nextTurn];
+      const nextPlayer = game.players[nextTurnFinal];
       const nextPlayerId = normalizePlayer(nextPlayer);
       if (nextPlayerId) {
         await schedulePushNotification(
@@ -433,10 +439,13 @@ export const passTurn = mutation({
     }
 
     const nextTurn = playerColor === "blue" ? "orange" : "blue";
+    const opponentPieces = game.pieces[nextTurn];
+    const opponentCanMove = hasValidMoves(game.board, opponentPieces, nextTurn);
 
-    // Check if both players have now passed
-    if (game.lastPassedBy === nextTurn) {
-      // Both passed - game over
+    const shouldEndGame = !opponentCanMove || game.lastPassedBy === nextTurn;
+
+    if (shouldEndGame) {
+      // Neither player has moves available, or both passed - game over
       const winner = determineWinner(game.pieces.blue, game.pieces.orange);
       await ctx.db.patch(game._id, {
         status: "finished",

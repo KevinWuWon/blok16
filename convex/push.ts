@@ -94,6 +94,7 @@ export const hasSubscriptionForEndpoint = query({
   args: {
     endpoint: v.string(),
     playerId: v.optional(v.string()),
+    gameCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const subscription = await ctx.db
@@ -104,6 +105,9 @@ export const hasSubscriptionForEndpoint = query({
       return false;
     }
     if (args.playerId && subscription.playerId !== args.playerId) {
+      return false;
+    }
+    if (args.gameCode && subscription.gameCode !== args.gameCode) {
       return false;
     }
     return true;
