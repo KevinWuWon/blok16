@@ -2,23 +2,25 @@ import { ref, computed, watch, type Ref } from "vue";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type { useGameRole, GameRole } from "./useGameRole";
 
-// Game flow state machine
-type GameFlowState =
+// Onboarding state machine - handles role selection before gameplay begins
+type OnboardingState =
   | "loading"
   | "selecting"
   | "claiming"
   | "confirming"
   | "ready";
 
-// Mobile UI state - derived from server state + FSM
-type MobileUIState =
-  | "loading"
-  | "waiting"
-  | "idle"
-  | "browsing"
-  | "placing"
-  | "watching"
-  | "finished";
+// Derived UI state - combines server game state with client interaction state
+// This is the single source of truth for what the UI should display
+type DerivedUIState =
+  | "onboarding" // Onboarding not complete (role selection in progress)
+  | "waiting_for_opponent" // Game created, waiting for player 2
+  | "my_turn" // Active game, it's my turn, no piece selected
+  | "browsing" // Active game, viewing piece tray
+  | "placing" // Active game, piece selected and positioning
+  | "opponent_turn" // Active game, waiting for opponent to move
+  | "game_over" // Game ended, not browsing pieces
+  | "game_over_browsing"; // Game ended, viewing pieces
 
 type InteractionType = "idle" | "browsing" | "placing";
 
@@ -47,9 +49,9 @@ export function useGameFlow(
   code: Ref<string>,
   playerId: Ref<string>,
 ) {
-  const flowState = ref<GameFlowState>("loading");
+  const onboardingState = ref<OnboardingState>("loading");
 
-  // Dialog state
+  // Dialog state for takeover confirmation
   const takeoverColor = ref<"blue" | "orange">("blue");
   const takeoverPlayerName = ref("");
   const pendingRoleSelection = ref<{
@@ -57,38 +59,43 @@ export function useGameFlow(
     name: string;
   } | null>(null);
 
-  // Mobile UI state - derived from server state + FSM
-  const mobileUIState = computed<MobileUIState>(() => {
-    // Server state takes precedence
-    if (flowState.value !== "ready") return "loading";
-    if (game.value?.status === "waiting") return "waiting";
-    if (game.value?.status === "finished") return "finished";
+  // Derived UI state - combines server game state with client interaction state
+  const derivedUIState = computed<DerivedUIState>(() => {
+    // Onboarding takes precedence
+    if (onboardingState.value !== "ready") return "onboarding";
+    if (game.value?.status === "waiting") return "waiting_for_opponent";
 
-    // Client FSM state
+    // Game over states
+    if (game.value?.status === "finished") {
+      if (interactionType.value === "browsing") return "game_over_browsing";
+      return "game_over";
+    }
+
+    // Active game - client interaction state
     if (interactionType.value === "placing") return "placing";
     if (interactionType.value === "browsing") return "browsing";
 
     // Default based on turn
-    return isMyTurn.value ? "idle" : "watching";
+    return isMyTurn.value ? "my_turn" : "opponent_turn";
   });
 
-  // Manage flow state transitions
+  // Manage onboarding state transitions
   watch(
     [game, role, isLoading],
     () => {
       if (isLoading.value || !game.value) {
-        flowState.value = "loading";
+        onboardingState.value = "loading";
         return;
       }
 
       if (role.value !== null) {
-        flowState.value = "ready";
+        onboardingState.value = "ready";
         return;
       }
 
       // Only trigger 'selecting' if we aren't already in a transition state
-      if (flowState.value === "loading" || flowState.value === "ready") {
-        flowState.value = "selecting";
+      if (onboardingState.value === "loading" || onboardingState.value === "ready") {
+        onboardingState.value = "selecting";
       }
     },
     { immediate: true },
@@ -100,15 +107,15 @@ export function useGameFlow(
     name?: string,
   ) {
     if (selectedRole === "spectator") {
-      flowState.value = "claiming";
+      onboardingState.value = "claiming";
       gameRoleComposable.value.setRole("spectator");
-      flowState.value = "ready";
+      onboardingState.value = "ready";
       return;
     }
 
     if (!name) return;
 
-    flowState.value = "claiming";
+    onboardingState.value = "claiming";
     const result = await claimColorMutation.mutate({
       code: code.value,
       playerId: playerId.value,
@@ -118,23 +125,23 @@ export function useGameFlow(
 
     if (result?.success) {
       gameRoleComposable.value.setRole(selectedRole, name);
-      flowState.value = "ready";
+      onboardingState.value = "ready";
     } else if (result?.requiresConfirmation) {
       // Need takeover confirmation
       pendingRoleSelection.value = { role: selectedRole, name };
       takeoverColor.value = selectedRole;
       takeoverPlayerName.value = result.currentPlayerName || "Anonymous";
-      flowState.value = "confirming";
+      onboardingState.value = "confirming";
     } else {
       // If error, go back to selecting
-      flowState.value = "selecting";
+      onboardingState.value = "selecting";
     }
   }
 
   async function handleTakeoverConfirm() {
     if (!pendingRoleSelection.value) return;
 
-    flowState.value = "claiming";
+    onboardingState.value = "claiming";
     const result = await claimColorMutation.mutate({
       code: code.value,
       playerId: playerId.value,
@@ -148,9 +155,9 @@ export function useGameFlow(
         pendingRoleSelection.value.role,
         pendingRoleSelection.value.name,
       );
-      flowState.value = "ready";
+      onboardingState.value = "ready";
     } else {
-      flowState.value = "selecting";
+      onboardingState.value = "selecting";
     }
 
     pendingRoleSelection.value = null;
@@ -158,15 +165,15 @@ export function useGameFlow(
 
   function handleTakeoverCancel() {
     pendingRoleSelection.value = null;
-    flowState.value = "selecting";
+    onboardingState.value = "selecting";
   }
 
   return {
     // State
-    flowState,
+    onboardingState,
     takeoverColor,
     takeoverPlayerName,
-    mobileUIState,
+    derivedUIState,
 
     // Actions
     handleRoleSelect,

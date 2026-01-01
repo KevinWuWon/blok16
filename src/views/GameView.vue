@@ -86,10 +86,10 @@ const interactionType = computed(() => interaction.value.type);
 
 // Flow composable
 const {
-  flowState,
+  onboardingState,
   takeoverColor,
   takeoverPlayerName,
-  mobileUIState,
+  derivedUIState,
   handleRoleSelect,
   handleTakeoverConfirm,
   handleTakeoverCancel,
@@ -242,10 +242,10 @@ function copyLink() {
 
     <!-- Game view -->
     <template v-else>
-      <!-- Header (hidden on mobile when piece tray is open) -->
+      <!-- Header (hidden on mobile when piece tray is open during active game) -->
       <header
         class="items-center justify-between px-4 py-2 border-b border-default shrink-0"
-        :class="interaction.type === 'browsing' ? 'hidden md:flex' : 'flex'"
+        :class="derivedUIState === 'browsing' ? 'hidden md:flex' : 'flex'"
       >
         <div class="flex items-center gap-2">
           <RouterLink
@@ -369,12 +369,12 @@ function copyLink() {
           <!-- Board area -->
           <main
             class="flex flex-col items-center p-4 overflow-hidden"
-            :class="interaction.type === 'browsing' ? 'justify-start pt-2' : 'justify-center'"
+            :class="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing' ? 'justify-start pt-2' : 'justify-center'"
           >
-            <!-- Game status / Turn indicator (hidden on mobile when piece tray is open) -->
+            <!-- Game status / Turn indicator (hidden on mobile when piece tray is open during active game) -->
             <div
               class="mb-8"
-              :class="{ 'hidden md:block': interaction.type === 'browsing' }"
+              :class="{ 'hidden md:block': derivedUIState === 'browsing' }"
             >
               <template v-if="game.status === 'finished'">
                 <div class="text-2xl font-bold text-center">
@@ -461,7 +461,7 @@ function copyLink() {
               "
               :show-anchors="isMyTurn && selectedPieceId !== null"
               :is-dragging="isDragging"
-              :compact="interaction.type === 'browsing'"
+              :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
               :last-placement-cells="(game.lastPlacement as [number, number][])"
               @cell-click="handleBoardClick"
               @drag-start="startDrag"
@@ -469,7 +469,7 @@ function copyLink() {
 
             <!-- Mobile: Inline piece tray (browsing state) -->
             <div
-              v-if="interaction.type === 'browsing'"
+              v-if="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
               class="md:hidden w-full flex-1 flex flex-col border-t border-default mt-2 min-h-0"
             >
               <!-- Tabs -->
@@ -522,7 +522,7 @@ function copyLink() {
 
             <!-- Mobile: Placement controls (placing state) -->
             <div
-              v-if="mobileUIState === 'placing'"
+              v-if="derivedUIState === 'placing'"
               class="md:hidden w-full border-t border-default mt-2 p-4"
             >
               <div class="flex flex-col gap-3 max-w-sm mx-auto">
@@ -602,7 +602,7 @@ function copyLink() {
           <div class="flex items-center justify-center gap-2 flex-wrap">
             <!-- Mobile: Select piece button (idle state) -->
             <UButton
-              v-if="mobileUIState === 'idle'"
+              v-if="derivedUIState === 'my_turn'"
               size="xl"
               class="md:hidden"
               @click="openTray('mine')"
@@ -612,7 +612,7 @@ function copyLink() {
 
             <!-- Mobile: Hide tray button (browsing state) -->
             <UButton
-              v-if="mobileUIState === 'browsing'"
+              v-if="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
               size="xl"
               class="md:hidden"
               variant="outline"
@@ -623,7 +623,7 @@ function copyLink() {
 
             <!-- Mobile: View Pieces button (watching/finished state) -->
             <UButton
-              v-if="(mobileUIState === 'watching' || mobileUIState === 'finished') && interaction.type === 'idle'"
+              v-if="derivedUIState === 'opponent_turn' || derivedUIState === 'game_over'"
               class="md:hidden"
               variant="outline"
               size="xl"
@@ -636,7 +636,7 @@ function copyLink() {
             <template v-if="selectedPieceId !== null">
               <div
                 class="flex items-center gap-1"
-                :class="{ 'hidden md:flex': mobileUIState === 'placing' }"
+                :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
               >
                 <PieceMiniPreview
                   :piece-id="selectedPieceId"
@@ -647,7 +647,7 @@ function copyLink() {
               </div>
               <div
                 class="flex items-center gap-1"
-                :class="{ 'hidden md:flex': mobileUIState === 'placing' }"
+                :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
               >
                 <UButton
                   icon="i-lucide-rotate-ccw"
@@ -677,7 +677,7 @@ function copyLink() {
                 <UButton
                   size="xl"
                   color="primary"
-                  :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                  :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
                   @click="confirmPlacement"
                 >
                   Confirm
@@ -685,7 +685,7 @@ function copyLink() {
                 <UButton
                   size="xl"
                   variant="outline"
-                  :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                  :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
                   @click="interaction.type === 'placing' && (interaction = { ...interaction, preview: null })"
                 >
                   Cancel
@@ -729,16 +729,16 @@ function copyLink() {
 
       <!-- Role selection dialog -->
       <RoleSelectionDialog
-        :open="flowState === 'selecting'"
+        :open="onboardingState === 'selecting'"
         :blue-player="game?.players.blue"
         :orange-player="game?.players.orange"
-        @update:open="(val) => !val && (flowState = 'ready')"
+        @update:open="(val) => !val && (onboardingState = 'ready')"
         @select="handleRoleSelect"
       />
 
       <!-- Takeover confirmation dialog -->
       <TakeoverConfirmDialog
-        :open="flowState === 'confirming'"
+        :open="onboardingState === 'confirming'"
         :current-player-name="takeoverPlayerName"
         :color="takeoverColor"
         @confirm="handleTakeoverConfirm"
