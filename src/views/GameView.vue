@@ -469,7 +469,7 @@ function copyLink() {
 
             <!-- Mobile: Inline piece tray (browsing state) -->
             <div
-              v-if="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
+              v-if="(derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing') && interaction.type === 'browsing'"
               class="md:hidden w-full flex-1 flex flex-col border-t border-default mt-2 min-h-0"
             >
               <!-- Tabs -->
@@ -706,7 +706,7 @@ function copyLink() {
                 v-if="!previewCells"
                 variant="ghost"
                 size="xl"
-                :class="{ 'hidden md:inline-flex': mobileUIState === 'placing' }"
+                :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
                 @click="clearSelection"
               >
                 Deselect
