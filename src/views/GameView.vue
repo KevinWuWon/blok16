@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useConvexMutation } from "convex-vue";
+import { useClipboard } from "@vueuse/core";
 import { api } from "../../convex/_generated/api";
 import type { Board } from "../../lib/validation";
 import BoardComponent from "@/components/Board.vue";
@@ -199,8 +200,11 @@ onMounted(async () => {
   }
 });
 
-async function copyLink() {
-  await navigator.clipboard.writeText(gameUrl.value);
+// Clipboard
+const { copy, copied } = useClipboard();
+
+function copyLink() {
+  copy(gameUrl.value);
 }
 </script>
 
@@ -275,14 +279,20 @@ async function copyLink() {
             @click="enableNotifications"
           />
           <template v-if="game.status === 'waiting'">
-            <UButton
-              variant="outline"
-              size="sm"
-              icon="i-lucide-copy"
-              @click="copyLink"
+            <UTooltip
+              :text="copied ? 'Copied!' : 'Copy link to clipboard'"
+              :open="copied ? true : undefined"
             >
-              Copy Link
-            </UButton>
+              <UButton
+                :color="copied ? 'success' : 'neutral'"
+                variant="outline"
+                size="sm"
+                :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
+                @click="copyLink"
+              >
+                {{ copied ? 'Copied!' : 'Copy Link' }}
+              </UButton>
+            </UTooltip>
           </template>
           <template v-else />
         </div>
@@ -310,10 +320,16 @@ async function copyLink() {
               readonly
               class="w-64"
             />
-            <UButton
-              icon="i-lucide-copy"
-              @click="copyLink"
-            />
+            <UTooltip
+              :text="copied ? 'Copied!' : 'Copy to clipboard'"
+              :open="copied ? true : undefined"
+            >
+              <UButton
+                :color="copied ? 'success' : 'neutral'"
+                :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
+                @click="copyLink"
+              />
+            </UTooltip>
           </div>
         </div>
       </div>
