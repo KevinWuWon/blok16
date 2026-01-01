@@ -10,6 +10,7 @@ import PieceTray from "@/components/PieceTray.vue";
 import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
+import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
 import { useGameRole } from "@/composables/useGameRole";
 import { useGameState } from "@/composables/useGameState";
 import { useGameInteraction } from "@/composables/useGameInteraction";
@@ -147,38 +148,38 @@ const {
   permission: notificationPermission,
   isSupported: notificationsSupported,
   isPushSupported,
-  subscribeToPush,
   getExistingSubscription,
   storePlayerInfoForServiceWorker,
-  updatePermissionState,
 } = useNotifications();
 
 // Get Convex URL for service worker subscription refresh
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
 
-const showNotificationButton = computed(() => {
-  return notificationsSupported && notificationPermission.value !== "granted";
+// Notification dialog state
+const notificationDialogOpen = ref(false);
+
+// Bell icon based on permission state
+const bellIcon = computed(() => {
+  if (!notificationsSupported) return "i-lucide-bell-off";
+  if (notificationPermission.value === "denied") return "i-lucide-bell-off";
+  if (notificationPermission.value === "granted") return "i-lucide-bell-ring";
+  return "i-lucide-bell";
 });
 
-async function enableNotifications() {
-  if (isPushSupported) {
-    // Use Push API for background notifications
-    const subscription = await subscribeToPush();
-    if (subscription && playerId.value) {
-      const subData = getSubscriptionData(subscription);
-      if (subData) {
-        await pushSubscribeMutation.mutate({
-          playerId: playerId.value,
-          endpoint: subData.endpoint,
-          keys: subData.keys,
-          gameCode: code.value,
-        });
-        // Store player info in service worker for subscription refresh handling
-        storePlayerInfoForServiceWorker(playerId.value, convexUrl);
-      }
+async function handleNotificationSubscribe(subscription: PushSubscription) {
+  if (playerId.value) {
+    const subData = getSubscriptionData(subscription);
+    if (subData) {
+      await pushSubscribeMutation.mutate({
+        playerId: playerId.value,
+        endpoint: subData.endpoint,
+        keys: subData.keys,
+        gameCode: code.value,
+      });
+      // Store player info in service worker for subscription refresh handling
+      storePlayerInfoForServiceWorker(playerId.value, convexUrl);
     }
   }
-  updatePermissionState();
 }
 
 // Register existing push subscription on mount
@@ -263,23 +264,14 @@ function copyLink() {
         </div>
         <!-- Game status in header -->
         <div class="flex items-center gap-2">
-          <!-- Notification enable button -->
+          <!-- Notification status button -->
           <UButton
-            v-if="showNotificationButton"
+            v-if="notificationsSupported"
             variant="ghost"
             size="xl"
-            :icon="
-              notificationPermission === 'denied'
-                ? 'i-lucide-bell-off'
-                : 'i-lucide-bell'
-            "
-            :title="
-              notificationPermission === 'denied'
-                ? 'Notifications blocked - enable in browser settings'
-                : 'Enable notifications'
-            "
-            :disabled="notificationPermission === 'denied'"
-            @click="enableNotifications"
+            :icon="bellIcon"
+            title="Notification settings"
+            @click="notificationDialogOpen = true"
           />
           <template v-if="game.status === 'waiting'">
             <UTooltip
@@ -743,6 +735,15 @@ function copyLink() {
         :color="takeoverColor"
         @confirm="handleTakeoverConfirm"
         @cancel="handleTakeoverCancel"
+      />
+
+      <!-- Notification status dialog -->
+      <NotificationStatusDialog
+        :open="notificationDialogOpen"
+        :player-id="playerId"
+        :game-code="code"
+        @update:open="notificationDialogOpen = $event"
+        @subscribe="handleNotificationSubscribe"
       />
     </template>
   </div>

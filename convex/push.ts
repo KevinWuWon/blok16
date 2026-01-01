@@ -89,6 +89,20 @@ export const hasSubscription = query({
   },
 });
 
+// Check if a specific endpoint (device) is registered
+export const hasSubscriptionForEndpoint = query({
+  args: {
+    endpoint: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("pushSubscriptions")
+      .withIndex("by_endpoint", (q) => q.eq("endpoint", args.endpoint))
+      .first();
+    return !!subscription;
+  },
+});
+
 // Internal query to get subscriptions for a player
 export const getSubscriptionsForPlayer = internalQuery({
   args: { playerId: v.string() },

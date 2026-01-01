@@ -163,6 +163,11 @@ export function useNotifications() {
     }
   }
 
+  async function getCurrentEndpoint(): Promise<string | null> {
+    const subscription = await getExistingSubscription();
+    return subscription?.endpoint ?? null;
+  }
+
   /**
    * Store player info in the service worker for subscription refresh handling.
    * Call this after successfully registering a push subscription.
@@ -198,6 +203,7 @@ export function useNotifications() {
     subscribeToPush,
     unsubscribeFromPush,
     getExistingSubscription,
+    getCurrentEndpoint,
     registerServiceWorker,
     storePlayerInfoForServiceWorker,
     updatePermissionState,
