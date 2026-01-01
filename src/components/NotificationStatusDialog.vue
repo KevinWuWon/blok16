@@ -34,7 +34,6 @@ const { data: isDeviceRegistered } = useConvexQuery(
   () => ({
     endpoint: currentEndpoint.value || "__none__",
     playerId: isPlayerReady.value ? props.playerId : undefined,
-    gameCode: props.gameCode || undefined,
   })
 );
 

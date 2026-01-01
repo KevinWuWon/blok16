@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useConvexMutation } from "convex-vue";
 import { useClipboard } from "@vueuse/core";
@@ -182,24 +182,32 @@ async function handleNotificationSubscribe(subscription: PushSubscription) {
   }
 }
 
-// Register existing push subscription on mount
-onMounted(async () => {
-  if (isPushSupported && playerId.value) {
-    const existingSub = await getExistingSubscription();
-    if (existingSub) {
-      const subData = getSubscriptionData(existingSub);
-      if (subData) {
-        // Update the game code for existing subscription
-        await pushUpdateGameCodeMutation.mutate({
-          playerId: playerId.value,
-          gameCode: code.value,
-        });
-        // Ensure service worker has player info for subscription refresh
-        storePlayerInfoForServiceWorker(playerId.value, convexUrl);
-      }
-    }
-  }
-});
+const lastSubscriptionSyncKey = ref<string>("");
+
+async function syncExistingSubscription() {
+  if (!isPushSupported || !playerId.value) return;
+  const syncKey = `${playerId.value}:${code.value}`;
+  if (lastSubscriptionSyncKey.value === syncKey) return;
+
+  const existingSub = await getExistingSubscription();
+  if (!existingSub) return;
+
+  const subData = getSubscriptionData(existingSub);
+  if (!subData) return;
+
+  await pushUpdateGameCodeMutation.mutate({
+    playerId: playerId.value,
+    gameCode: code.value,
+  });
+
+  // Ensure service worker has player info for subscription refresh
+  storePlayerInfoForServiceWorker(playerId.value, convexUrl);
+  lastSubscriptionSyncKey.value = syncKey;
+}
+
+watch([playerId, code], () => {
+  void syncExistingSubscription();
+}, { immediate: true });
 
 // Clipboard
 const { copy, copied } = useClipboard();
