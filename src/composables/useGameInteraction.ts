@@ -3,6 +3,7 @@ import {
   getNextValidOrientation,
   getFlippedOrientation,
   findValidPlacementsAtAnchor,
+  getAllValidPlacements,
   type Board,
   type PlayerColor,
 } from "../../lib/validation";
@@ -44,6 +45,20 @@ export function useGameInteraction(
       ? (interaction.value.preview?.cells ?? null)
       : null,
   );
+
+  // All valid placements for the current piece (for thumbwheel)
+  const allValidPlacements = computed(() => {
+    if (!game.value || !myColor.value || interaction.value.type !== "placing")
+      return [];
+    return getAllValidPlacements(
+      game.value.board as Board,
+      interaction.value.pieceId,
+      myColor.value,
+    );
+  });
+
+  // Current placement index (for thumbwheel sync)
+  const currentPlacementIndex = ref(0);
 
   // FSM transition functions
   function openTray(tab: "mine" | "opponent" = "mine") {
@@ -154,6 +169,43 @@ export function useGameInteraction(
     }
   }
 
+  // Set placement by index (called from thumbwheel)
+  function setPlacementByIndex(index: number) {
+    if (interaction.value.type !== "placing") return;
+    const placements = allValidPlacements.value;
+    if (index < 0 || index >= placements.length) return;
+
+    const placement = placements[index];
+    interaction.value = {
+      ...interaction.value,
+      orientation: placement.orientationIndex,
+      preview: {
+        anchor: placement.anchor,
+        cells: placement.cells,
+      },
+    };
+    currentPlacementIndex.value = index;
+  }
+
+  // Helper to create cell key for deduplication
+  function cellsToKey(cells: [number, number][]): string {
+    return [...cells]
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+      .map(([r, c]) => `${r},${c}`)
+      .join("|");
+  }
+
+  // Sync placement index when preview changes
+  function syncPlacementIndex(cells: [number, number][]) {
+    const key = cellsToKey(cells);
+    const idx = allValidPlacements.value.findIndex(
+      (p) => cellsToKey(p.cells) === key,
+    );
+    if (idx >= 0) {
+      currentPlacementIndex.value = idx;
+    }
+  }
+
   // Keyboard shortcuts
   onMounted(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -208,6 +260,8 @@ export function useGameInteraction(
         orientation: placement.orientationIndex,
         preview: { anchor, cells: placement.cells },
       };
+      // Sync thumbwheel index
+      syncPlacementIndex(placement.cells);
     }
   }
 
@@ -224,6 +278,8 @@ export function useGameInteraction(
     selectedPieceId,
     currentOrientationIndex,
     previewCells,
+    allValidPlacements,
+    currentPlacementIndex,
 
     // Actions
     openTray,
@@ -236,6 +292,7 @@ export function useGameInteraction(
     flipPieceAction,
     updatePreview,
     handleBoardClick,
+    setPlacementByIndex,
   };
 }
 

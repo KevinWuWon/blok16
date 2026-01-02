@@ -8,6 +8,7 @@ import type { Board } from "../../lib/validation";
 import BoardComponent from "@/components/Board.vue";
 import PieceTray from "@/components/PieceTray.vue";
 import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
+import PlacementThumbwheel from "@/components/PlacementThumbwheel.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
@@ -71,6 +72,8 @@ const {
   selectedPieceId,
   currentOrientationIndex,
   previewCells,
+  allValidPlacements,
+  currentPlacementIndex,
   openTray,
   closeTray,
   switchTab,
@@ -81,6 +84,7 @@ const {
   flipPieceAction,
   updatePreview,
   handleBoardClick,
+  setPlacementByIndex,
 } = useGameInteraction(game, myColor, myPieces, isMyTurn);
 
 const interactionType = computed(() => interaction.value.type);
@@ -374,7 +378,7 @@ function copyLink() {
           >
             <!-- Game status / Turn indicator (hidden on mobile when piece tray is open during active game) -->
             <div
-              class="mb-8"
+              class="mb-4"
               :class="{ 'hidden md:block': derivedUIState === 'browsing' }"
             >
               <template v-if="game.status === 'finished'">
@@ -450,23 +454,25 @@ function copyLink() {
               </template>
             </div>
 
-            <BoardComponent
-              ref="boardComponentRef"
-              :board="game.board as Board"
-              :preview-cells="previewCells"
-              :preview-color="myColor || 'blue'"
-              :valid-anchors="
-                selectedPieceId !== null
-                  ? validAnchorsForSelectedPiece
-                  : validAnchors
-              "
-              :show-anchors="isMyTurn && selectedPieceId !== null"
-              :is-dragging="isDragging"
-              :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
-              :last-placement-cells="(game.lastPlacement as [number, number][])"
-              @cell-click="handleBoardClick"
-              @drag-start="startDrag"
-            />
+            <div class="flex flex-col items-center">
+              <BoardComponent
+                ref="boardComponentRef"
+                :board="game.board as Board"
+                :preview-cells="previewCells"
+                :preview-color="myColor || 'blue'"
+                :valid-anchors="
+                  selectedPieceId !== null
+                    ? validAnchorsForSelectedPiece
+                    : validAnchors
+                "
+                :show-anchors="isMyTurn && selectedPieceId !== null"
+                :is-dragging="isDragging"
+                :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
+                :last-placement-cells="(game.lastPlacement as [number, number][])"
+                @cell-click="handleBoardClick"
+                @drag-start="startDrag"
+              />
+            </div>
 
             <!-- Mobile: Inline piece tray (browsing state) -->
             <div
@@ -526,7 +532,7 @@ function copyLink() {
             <!-- Mobile: Placement controls (placing state) -->
             <div
               v-if="derivedUIState === 'placing'"
-              class="md:hidden w-full border-t border-default mt-2 p-4"
+              class="md:hidden flex-1 flex items-center justify-center mt-2 p-4 gap-3"
             >
               <div class="flex flex-col gap-3 max-w-sm mx-auto">
                 <!-- Preview + manipulation row -->
@@ -574,6 +580,18 @@ function copyLink() {
                     @click="flipPieceAction"
                   />
                 </div>
+              </div>
+
+              <!-- Thumbwheel for cycling through placements -->
+              <!--              v-if="interaction.type === 'placing'"-->
+              <div
+                class="w-12 h-28 relative"
+              >
+                <PlacementThumbwheel
+                  :placements="allValidPlacements"
+                  :current-index="currentPlacementIndex"
+                  @update:current-index="setPlacementByIndex"
+                />
               </div>
             </div>
           </main>

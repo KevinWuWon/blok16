@@ -326,6 +326,50 @@ export function getCellsCenter(cells: [number, number][]): { row: number; col: n
   };
 }
 
+// Get all valid placements for a piece, sorted in reading order (top-to-bottom, left-to-right)
+// Deduplicates placements by cell positions (different anchors can produce same placement)
+export function getAllValidPlacements(
+  board: Board,
+  pieceId: number,
+  player: PlayerColor
+): { anchor: [number, number]; cells: [number, number][]; orientationIndex: number }[] {
+  const anchors = findCornerAnchors(board, player);
+
+  // Sort in reading order (row, then col)
+  const sortedAnchors = [...anchors].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+  const allPlacements: Array<{
+    anchor: [number, number];
+    cells: [number, number][];
+    orientationIndex: number;
+  }> = [];
+
+  const seen = new Set<string>();
+
+  for (const anchor of sortedAnchors) {
+    const placements = findValidPlacementsAtAnchor(board, pieceId, anchor[0], anchor[1], player);
+
+    for (const placement of placements) {
+      // Dedupe by sorted cell positions
+      const key = [...placement.cells]
+        .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+        .map(([r, c]) => `${r},${c}`)
+        .join("|");
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        allPlacements.push({
+          anchor,
+          cells: placement.cells,
+          orientationIndex: placement.orientationIndex,
+        });
+      }
+    }
+  }
+
+  return allPlacements;
+}
+
 // Find the placement whose center is closest to the cursor position
 // This is used during drag to pick the best placement when there are multiple
 // valid placements at the same anchor (e.g., first move on starting position)
