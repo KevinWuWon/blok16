@@ -2,19 +2,23 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useConvexMutation } from "convex-vue";
-import { useClipboard } from "@vueuse/core";
 import { api } from "../../convex/_generated/api";
 import { hasValidMoves, type Board } from "../../lib/validation";
 import { PIECES } from "../../convex/shared/pieces";
 import BoardComponent from "@/components/Board.vue";
-import PieceTray from "@/components/PieceTray.vue";
-import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
-import PlacementThumbwheel from "@/components/PlacementThumbwheel.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
 import HelpDialog from "@/components/HelpDialog.vue";
 import RematchPanel from "@/components/RematchPanel.vue";
+import GameHeader from "@/components/GameHeader.vue";
+import WaitingScreen from "@/components/WaitingScreen.vue";
+import PlayerTurnIndicator from "@/components/PlayerTurnIndicator.vue";
+import GameResult from "@/components/GameResult.vue";
+import PieceSidebar from "@/components/PieceSidebar.vue";
+import PieceTabs from "@/components/PieceTabs.vue";
+import MobilePlacementControls from "@/components/MobilePlacementControls.vue";
+import GameControlsFooter from "@/components/GameControlsFooter.vue";
 import { useGameRole } from "@/composables/useGameRole";
 import { useGameState } from "@/composables/useGameState";
 import { useGameInteraction } from "@/composables/useGameInteraction";
@@ -218,13 +222,6 @@ watch([playerId, code], () => {
   void syncExistingSubscription();
 }, { immediate: true });
 
-// Clipboard
-const { copy, copied } = useClipboard();
-
-function copyLink() {
-  copy(gameUrl.value);
-}
-
 // Calculate remaining cells for each player
 function countRemainingCells(pieceIds: number[]): number {
   return pieceIds.reduce((sum, id) => sum + (PIECES[id]?.size ?? 0), 0);
@@ -279,81 +276,19 @@ const opponentHasNoMoves = computed(() => {
 
     <!-- Game view -->
     <template v-else>
-      <!-- Header (hidden on mobile when piece tray is open during active game) -->
-      <header
-        class="items-center justify-between px-4 py-2 border-b border-default shrink-0"
-        :class="derivedUIState === 'browsing' ? 'hidden md:flex' : 'flex'"
-      >
-        <div class="flex items-center gap-2">
-          <RouterLink
-            to="/"
-            class="text-lg font-bold"
-          >
-            Blokus Duo
-          </RouterLink>
-          <UBadge
-            variant="subtle"
-            color="neutral"
-          >
-            {{ code }}
-          </UBadge>
-        </div>
-        <!-- Game status in header -->
-        <div class="flex items-center gap-2">
-          <!-- Help button -->
-          <UButton
-            variant="ghost"
-            size="xl"
-            icon="i-lucide-circle-help"
-            title="How to play"
-            @click="helpDialogOpen = true"
-          />
-          <!-- Notification status button -->
-          <UButton
-            v-if="notificationsSupported"
-            variant="ghost"
-            size="xl"
-            :icon="bellIcon"
-            title="Notification settings"
-            @click="notificationDialogOpen = true"
-          />
-        </div>
-      </header>
+      <GameHeader
+        :code="code"
+        :notifications-supported="notificationsSupported"
+        :bell-icon="bellIcon"
+        :derived-u-i-state="derivedUIState"
+        @help-click="helpDialogOpen = true"
+        @notification-click="notificationDialogOpen = true"
+      />
 
-      <!-- Waiting for opponent -->
-      <div
+      <WaitingScreen
         v-if="game.status === 'waiting'"
-        class="flex-1 flex flex-col items-center justify-center p-4"
-      >
-        <div class="text-center space-y-4 w-full">
-          <UIcon
-            name="i-lucide-users"
-            class="w-12 h-12 mx-auto text-muted"
-          />
-          <h2 class="text-xl font-semibold">
-            Waiting for opponent...
-          </h2>
-          <p class="text-muted">
-            Share this link with a friend:
-          </p>
-          <div class="flex flex-col items-center gap-2 w-full">
-            <UInput
-              :value="gameUrl"
-              size="xl"
-              readonly
-              class="w-full text-center"
-            />
-            <UButton
-              size="xl"
-              :color="copied ? 'success' : 'neutral'"
-              :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-              @click="copyLink"
-            >
-              {{ copied ? 'Copied!' : 'Copy Link' }}
-            </UButton>
-          </div>
-        </div>
-      </div>
+        :game-url="gameUrl"
+      />
 
       <!-- Game in progress or finished -->
       <template v-else>
@@ -362,30 +297,18 @@ const opponentHasNoMoves = computed(() => {
           class="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0"
         >
           <!-- Desktop: Left sidebar - Your pieces (visible at md+) -->
-          <aside
-            class="hidden md:flex md:flex-col flex-1 min-w-48 border-r border-default"
-          >
-            <h3
-              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0 flex items-center justify-between"
-            >
-              <span>Your Pieces</span>
-              <span
-                v-if="myHasNoMoves"
-                class="text-muted font-normal"
-              >{{ myRemainingCells }} cells</span>
-            </h3>
-            <div class="flex-1 overflow-y-auto p-2">
-              <PieceTray
-                :pieces="myPieces"
-                :player-color="myColor || 'blue'"
-                :selected-piece-id="selectedPieceId"
-                :disabled="!isMyTurn"
-                :board="game.board as Board"
-                horizontal
-                @select="selectPiece"
-              />
-            </div>
-          </aside>
+          <PieceSidebar
+            title="Your Pieces"
+            :pieces="myPieces"
+            :player-color="myColor || 'blue'"
+            :selected-piece-id="selectedPieceId"
+            :disabled="!isMyTurn"
+            :board="(game.board as Board)"
+            :has-no-moves="myHasNoMoves"
+            :remaining-cells="myRemainingCells"
+            side="left"
+            @select="selectPiece"
+          />
 
           <!-- Board area -->
           <main
@@ -398,84 +321,27 @@ const opponentHasNoMoves = computed(() => {
               :class="{ 'hidden md:block': derivedUIState === 'browsing' }"
             >
               <template v-if="game.status === 'finished'">
-                <div class="text-2xl font-bold text-center">
-                  <span
-                    v-if="game.winner === 'draw'"
-                    class="text-muted"
-                  >Draw!</span>
-                  <span
-                    v-else
-                    :class="
-                      game.winner === 'blue'
-                        ? 'text-blue-500'
-                        : 'text-orange-500'
-                    "
-                  >
-                    {{ game.winner === myColor ? "You win!" : "You lose!" }}
-                  </span>
-                </div>
-                <RematchPanel
-                  v-if="myColor"
-                  :game="game"
-                  :code="code"
-                  :player-id="playerId"
+                <GameResult
+                  :winner="game.winner!"
                   :my-color="myColor"
-                  :player-name="storedPlayerName ?? 'Anonymous'"
-                />
+                >
+                  <RematchPanel
+                    v-if="myColor"
+                    :game="game"
+                    :code="code"
+                    :player-id="playerId"
+                    :my-color="myColor"
+                    :player-name="storedPlayerName ?? 'Anonymous'"
+                  />
+                </GameResult>
               </template>
-              <template v-else>
-                <div class="flex items-center gap-6">
-                  <!-- Blue Player -->
-                  <div
-                    class="relative px-4 py-2 border-2 rounded-xl min-w-[140px] text-center transition-all duration-300"
-                    :class="
-                      game.currentTurn === 'blue'
-                        ? 'border-blue-500'
-                        : 'border-transparent opacity-50'
-                    "
-                  >
-                    <span
-                      v-if="game.currentTurn === 'blue'"
-                      class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 bg-white dark:bg-neutral-900 text-[10px] uppercase font-black tracking-wider text-blue-500 whitespace-nowrap"
-                    >
-                      {{ turnLabel }}
-                    </span>
-                    <span
-                      class="font-bold text-lg"
-                      :class="
-                        game.currentTurn === 'blue'
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-blue-500'
-                      "
-                    >{{ blueDisplayName }}</span>
-                  </div>
-
-                  <!-- Orange Player -->
-                  <div
-                    class="relative px-4 py-2 border-2 rounded-xl min-w-[140px] text-center transition-all duration-300"
-                    :class="
-                      game.currentTurn === 'orange'
-                        ? 'border-orange-500'
-                        : 'border-transparent opacity-50'
-                    "
-                  >
-                    <span
-                      v-if="game.currentTurn === 'orange'"
-                      class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 bg-white dark:bg-neutral-900 text-[10px] uppercase font-black tracking-wider text-orange-500 whitespace-nowrap"
-                    >
-                      {{ turnLabel }}
-                    </span>
-                    <span
-                      class="font-bold text-lg"
-                      :class="
-                        game.currentTurn === 'orange'
-                          ? 'text-orange-600 dark:text-orange-400'
-                          : 'text-orange-500'
-                      "
-                    >{{ orangeDisplayName }}</span>
-                  </div>
-                </div>
-              </template>
+              <PlayerTurnIndicator
+                v-else
+                :current-turn="game.currentTurn"
+                :turn-label="turnLabel"
+                :blue-display-name="blueDisplayName"
+                :orange-display-name="orangeDisplayName"
+              />
             </div>
 
             <div class="flex flex-col items-center">
@@ -499,289 +365,77 @@ const opponentHasNoMoves = computed(() => {
             </div>
 
             <!-- Mobile: Inline piece tray (browsing state) -->
-            <div
+            <PieceTabs
               v-if="(derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing') && interaction.type === 'browsing'"
-              class="md:hidden w-full flex-1 flex flex-col border-t border-default mt-2 min-h-0"
-            >
-              <!-- Tabs -->
-              <div class="flex border-b border-default shrink-0">
-                <button
-                  :class="[
-                    'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
-                    interaction.tab === 'mine'
-                      ? 'border-b-2 border-primary text-primary'
-                      : 'text-default-500 hover:text-default-700',
-                  ]"
-                  @click="switchTab('mine')"
-                >
-                  Mine<span
-                    v-if="myHasNoMoves"
-                    class="text-muted font-normal"
-                  > ({{ myRemainingCells }})</span>
-                </button>
-                <button
-                  :class="[
-                    'flex-1 px-3 py-1.5 text-sm font-medium transition-colors',
-                    interaction.tab === 'opponent'
-                      ? 'border-b-2 border-primary text-primary'
-                      : 'text-default-500 hover:text-default-700',
-                  ]"
-                  @click="switchTab('opponent')"
-                >
-                  {{ opponentName }}<span
-                    v-if="opponentHasNoMoves"
-                    class="text-muted font-normal"
-                  > ({{ opponentRemainingCells }})</span>
-                </button>
-              </div>
-              <!-- Tab content -->
-              <div class="flex-1 overflow-y-auto">
-                <PieceTray
-                  v-if="interaction.tab === 'mine'"
-                  :pieces="myPieces"
-                  :player-color="myColor || 'blue'"
-                  :selected-piece-id="selectedPieceId"
-                  :disabled="!isMyTurn"
-                  :board="game.board as Board"
-                  horizontal
-                  @select="selectPiece"
-                />
-                <PieceTray
-                  v-else
-                  :pieces="opponentPieces"
-                  :player-color="myColor === 'blue' ? 'orange' : 'blue'"
-                  :selected-piece-id="null"
-                  :disabled="true"
-                  :board="game.board as Board"
-                  horizontal
-                  @select="() => {}"
-                />
-              </div>
-            </div>
+              class="md:hidden"
+              :my-pieces="myPieces"
+              :opponent-pieces="opponentPieces"
+              :my-color="myColor || 'blue'"
+              :opponent-color="myColor === 'blue' ? 'orange' : 'blue'"
+              :selected-piece-id="selectedPieceId"
+              :is-my-turn="isMyTurn"
+              :board="(game.board as Board)"
+              :current-tab="interaction.tab"
+              :opponent-name="opponentName"
+              :my-has-no-moves="myHasNoMoves"
+              :opponent-has-no-moves="opponentHasNoMoves"
+              :my-remaining-cells="myRemainingCells"
+              :opponent-remaining-cells="opponentRemainingCells"
+              @switch-tab="switchTab"
+              @select="selectPiece"
+            />
 
             <!-- Mobile: Placement controls (placing state) -->
-            <div
+            <MobilePlacementControls
               v-if="derivedUIState === 'placing'"
-              class="md:hidden flex-1 flex items-center justify-center mt-2 p-4 gap-3"
-            >
-              <div class="flex flex-col gap-3 max-w-sm mx-auto">
-                <!-- Preview + manipulation row -->
-                <div class="flex items-center justify-center gap-3">
-                  <PieceMiniPreview
-                    :piece-id="selectedPieceId!"
-                    :player-color="myColor || 'blue'"
-                    :orientation-index="currentOrientationIndex"
-                    class="w-12 h-12"
-                    @click="changePiece"
-                  />
-                  <UButton
-                    icon="i-lucide-arrow-down-up"
-                    size="xl"
-                    variant="outline"
-                    title="Change Piece"
-                    @click="changePiece"
-                  />
-                  <UButton
-                    icon="i-lucide-check"
-                    size="xl"
-                    title="Confirm"
-                    @click="confirmPlacement"
-                  />
-                </div>
-                <div class="flex items-center justify-center gap-3">
-                  <UButton
-                    icon="i-lucide-rotate-ccw"
-                    size="xl"
-                    variant="outline"
-                    title="Rotate counter-clockwise"
-                    @click="rotatePiece('ccw')"
-                  />
-                  <UButton
-                    icon="i-lucide-rotate-cw"
-                    size="xl"
-                    variant="outline"
-                    title="Rotate clockwise (R)"
-                    @click="rotatePiece('cw')"
-                  />
-                  <UButton
-                    icon="i-lucide-flip-horizontal"
-                    size="xl"
-                    variant="outline"
-                    title="Flip (F)"
-                    @click="flipPieceAction"
-                  />
-                </div>
-              </div>
-
-              <!-- Thumbwheel for cycling through placements -->
-              <!--              v-if="interaction.type === 'placing'"-->
-              <div
-                class="w-12 h-28 relative"
-              >
-                <PlacementThumbwheel
-                  :placements="allValidPlacements"
-                  :current-index="currentPlacementIndex"
-                  @update:current-index="setPlacementByIndex"
-                />
-              </div>
-            </div>
+              class="md:hidden"
+              :selected-piece-id="selectedPieceId!"
+              :player-color="myColor || 'blue'"
+              :current-orientation-index="currentOrientationIndex"
+              :all-valid-placements="allValidPlacements"
+              :current-placement-index="currentPlacementIndex"
+              @change-piece="changePiece"
+              @rotate="rotatePiece"
+              @flip="flipPieceAction"
+              @confirm="confirmPlacement"
+              @placement-index-change="setPlacementByIndex"
+            />
           </main>
 
           <!-- Desktop: Right sidebar - Opponent pieces (visible at lg+ only) -->
-          <aside
-            class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-l border-default"
-          >
-            <h3
-              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0 flex items-center justify-between"
-            >
-              <span>{{ opponentName }}'s Pieces</span>
-              <span
-                v-if="opponentHasNoMoves"
-                class="text-muted font-normal"
-              >{{ opponentRemainingCells }} cells</span>
-            </h3>
-            <div class="flex-1 overflow-y-auto p-2">
-              <PieceTray
-                :pieces="opponentPieces"
-                :player-color="myColor === 'blue' ? 'orange' : 'blue'"
-                :selected-piece-id="null"
-                :disabled="true"
-                :board="game.board as Board"
-                horizontal
-                @select="() => {}"
-              />
-            </div>
-          </aside>
+          <PieceSidebar
+            :title="`${opponentName}'s Pieces`"
+            :pieces="opponentPieces"
+            :player-color="myColor === 'blue' ? 'orange' : 'blue'"
+            :selected-piece-id="null"
+            :disabled="true"
+            :board="(game.board as Board)"
+            :has-no-moves="opponentHasNoMoves"
+            :remaining-cells="opponentRemainingCells"
+            side="right"
+            @select="() => {}"
+          />
         </div>
 
         <!-- Controls bar (bottom) -->
-        <footer class="border-t border-default p-4 lg:py-2 shrink-0">
-          <div class="flex items-center justify-center gap-2 flex-wrap">
-            <!-- Mobile: Select piece button (idle state) -->
-            <UButton
-              v-if="derivedUIState === 'my_turn'"
-              size="xl"
-              class="md:hidden"
-              @click="openTray('mine')"
-            >
-              Select Piece
-            </UButton>
-
-            <!-- Mobile: Hide tray button (browsing state) -->
-            <UButton
-              v-if="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
-              size="xl"
-              class="md:hidden"
-              variant="outline"
-              @click="closeTray"
-            >
-              Hide
-            </UButton>
-
-            <!-- Mobile: View Pieces button (watching/finished state) -->
-            <UButton
-              v-if="derivedUIState === 'opponent_turn' || derivedUIState === 'game_over'"
-              class="md:hidden"
-              variant="outline"
-              size="xl"
-              @click="openTray('mine')"
-            >
-              View Pieces
-            </UButton>
-
-            <!-- Desktop: Selected piece controls (hidden on mobile when placing) -->
-            <template v-if="selectedPieceId !== null">
-              <div
-                class="flex items-center gap-1"
-                :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
-              >
-                <PieceMiniPreview
-                  :piece-id="selectedPieceId"
-                  :player-color="myColor || 'blue'"
-                  :orientation-index="currentOrientationIndex"
-                  class="w-10 h-10"
-                />
-              </div>
-              <div
-                class="flex items-center gap-1"
-                :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
-              >
-                <UButton
-                  icon="i-lucide-rotate-ccw"
-                  variant="outline"
-                  size="xl"
-                  title="Rotate (R)"
-                  @click="rotatePiece('ccw')"
-                />
-                <UButton
-                  icon="i-lucide-rotate-cw"
-                  variant="outline"
-                  size="xl"
-                  title="Rotate (R)"
-                  @click="rotatePiece('cw')"
-                />
-                <UButton
-                  icon="i-lucide-flip-horizontal"
-                  variant="outline"
-                  size="xl"
-                  title="Flip (F)"
-                  @click="flipPieceAction"
-                />
-              </div>
-
-              <!-- Confirm/Cancel when preview is active (desktop only) -->
-              <template v-if="previewCells">
-                <UButton
-                  size="xl"
-                  color="primary"
-                  :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
-                  @click="confirmPlacement"
-                >
-                  Confirm
-                </UButton>
-                <UButton
-                  size="xl"
-                  variant="outline"
-                  :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
-                  @click="interaction.type === 'placing' && (interaction = { ...interaction, preview: null })"
-                >
-                  Cancel
-                </UButton>
-              </template>
-
-              <!-- Change piece button (tablet only, hidden on mobile and lg+) -->
-              <UButton
-                v-if="!previewCells && interaction.type === 'placing'"
-                variant="ghost"
-                size="xl"
-                class="hidden md:inline-flex lg:hidden"
-                @click="changePiece"
-              >
-                Change
-              </UButton>
-              <UButton
-                v-if="!previewCells"
-                variant="ghost"
-                size="xl"
-                :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
-                @click="clearSelection"
-              >
-                Deselect
-              </UButton>
-            </template>
-
-            <!-- Pass button -->
-            <UButton
-              v-if="canPass && !previewCells"
-              size="xl"
-              variant="outline"
-              color="warning"
-              @click="passTurnAction"
-            >
-              Pass Turn
-            </UButton>
-          </div>
-        </footer>
+        <GameControlsFooter
+          :derived-u-i-state="derivedUIState"
+          :selected-piece-id="selectedPieceId"
+          :my-color="myColor"
+          :current-orientation-index="currentOrientationIndex"
+          :preview-cells="previewCells"
+          :can-pass="canPass"
+          :interaction-type="interaction.type"
+          @open-tray="openTray"
+          @close-tray="closeTray"
+          @rotate="rotatePiece"
+          @flip="flipPieceAction"
+          @confirm="confirmPlacement"
+          @deselect="clearSelection"
+          @change-piece="changePiece"
+          @pass="passTurnAction"
+          @clear-preview="updatePreview(null)"
+        />
       </template>
 
       <!-- Role selection dialog -->
