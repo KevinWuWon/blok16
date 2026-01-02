@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Board: typeof import('./src/components/Board.vue')['default']
+    HelpDialog: typeof import('./src/components/HelpDialog.vue')['default']
     NotificationStatusDialog: typeof import('./src/components/NotificationStatusDialog.vue')['default']
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
@@ -24,6 +25,7 @@ declare module 'vue' {
     UApp: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UBadge: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
     UButton: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UDrawer: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Drawer.vue')['default']
     UFormField: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
     UIcon: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
