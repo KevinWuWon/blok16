@@ -542,6 +542,7 @@ function copyLink() {
                     :player-color="myColor || 'blue'"
                     :orientation-index="currentOrientationIndex"
                     class="w-12 h-12"
+                    @click="changePiece"
                   />
                   <UButton
                     icon="i-lucide-arrow-down-up"
