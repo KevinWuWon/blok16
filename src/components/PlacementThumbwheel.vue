@@ -16,20 +16,20 @@ const emit = defineEmits<{
 
 const scrollContainer = ref<HTMLElement | null>(null);
 const thumbwheelRef = ref<HTMLElement | null>(null);
-const TICK_HEIGHT = 16;
+const TICK_WIDTH = 16;
 const isScrolling = ref(false);
 
-// Get actual container height dynamically
-function getContainerHeight(): number {
-  return thumbwheelRef.value?.clientHeight ?? 200;
+// Get actual container width dynamically
+function getContainerWidth(): number {
+  return thumbwheelRef.value?.clientWidth ?? 200;
 }
 
 // Calculate how many times to repeat placements to ensure scrollability
 // Need at least 3x container height of content for infinite scroll to work
 function calculateRepeatCount(): number {
   if (props.placements.length === 0) return 0;
-  const containerHeight = getContainerHeight();
-  const minTicks = Math.ceil((containerHeight * 3) / TICK_HEIGHT);
+  const containerWidth = getContainerWidth();
+  const minTicks = Math.ceil((containerWidth * 3) / TICK_WIDTH);
   const repeatsNeeded = Math.ceil(minTicks / props.placements.length);
   return Math.max(3, repeatsNeeded); // At least 3 repeats
 }
@@ -41,13 +41,13 @@ const totalTicks = computed(() => props.placements.length * repeatCount.value);
 // The "middle section" starts at this offset
 const middleSectionStart = computed(() => {
   const sectionsBeforeMiddle = Math.floor(repeatCount.value / 2);
-  return sectionsBeforeMiddle * props.placements.length * TICK_HEIGHT;
+  return sectionsBeforeMiddle * props.placements.length * TICK_WIDTH;
 });
 
 function scrollToIndex(index: number, smooth = false) {
   if (!scrollContainer.value || props.placements.length === 0) return;
   scrollContainer.value.scrollTo({
-    top: middleSectionStart.value + index * TICK_HEIGHT,
+    left: middleSectionStart.value + index * TICK_WIDTH,
     behavior: smooth ? "smooth" : "instant",
   });
 }
@@ -60,26 +60,26 @@ function onScroll() {
   )
     return;
 
-  const scrollTop = scrollContainer.value.scrollTop;
-  const sectionHeight = props.placements.length * TICK_HEIGHT;
-  const totalHeight = totalTicks.value * TICK_HEIGHT;
+  const scrollLeft = scrollContainer.value.scrollLeft;
+  const sectionWidth = props.placements.length * TICK_WIDTH;
+  const totalWidth = totalTicks.value * TICK_WIDTH;
 
   // Reset to middle section if scrolled into first or last quarter
-  const lowerBound = sectionHeight;
-  const upperBound = totalHeight - sectionHeight * 2;
+  const lowerBound = sectionWidth;
+  const upperBound = totalWidth - sectionWidth * 2;
 
-  if (scrollTop < lowerBound || scrollTop > upperBound) {
+  if (scrollLeft < lowerBound || scrollLeft > upperBound) {
     isScrolling.value = true;
     // Jump by one full section toward the middle
-    const adjustment = scrollTop < lowerBound ? sectionHeight : -sectionHeight;
-    scrollContainer.value.scrollTop = scrollTop + adjustment;
+    const adjustment = scrollLeft < lowerBound ? sectionWidth : -sectionWidth;
+    scrollContainer.value.scrollLeft = scrollLeft + adjustment;
     isScrolling.value = false;
   }
 
   // Calculate current index from scroll position
-  const relativeScroll = scrollTop % sectionHeight;
+  const relativeScroll = scrollLeft % sectionWidth;
   const newIndex =
-    Math.round(relativeScroll / TICK_HEIGHT) % props.placements.length;
+    Math.round(relativeScroll / TICK_WIDTH) % props.placements.length;
 
   if (newIndex !== props.currentIndex) {
     emit("update:currentIndex", newIndex);
@@ -114,8 +114,8 @@ watch(
     ref="thumbwheelRef"
     class="thumbwheel"
   >
-    <div class="thumbwheel-gradient-top" />
-    <div class="thumbwheel-gradient-bottom" />
+    <div class="thumbwheel-gradient-left" />
+    <div class="thumbwheel-gradient-right" />
     <div
       ref="scrollContainer"
       class="thumbwheel-scroll"
@@ -127,50 +127,41 @@ watch(
         class="thumbwheel-tick"
       />
     </div>
-    <div class="thumbwheel-indicator" />
   </div>
 </template>
 
 <style scoped>
 .thumbwheel {
   position: relative;
-  width: 24px;
-  height: 100%;
+  width: 100%;
+  height: 48px;
   border-radius: 4px;
   overflow: hidden;
-  background: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 30%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.06) 70%,
-    rgba(0, 0, 0, 0.12) 100%
-  );
 }
 
-.thumbwheel-gradient-top,
-.thumbwheel-gradient-bottom {
+.thumbwheel-gradient-left,
+.thumbwheel-gradient-right {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 30%;
+  top: 0;
+  bottom: 0;
+  width: 30%;
   pointer-events: none;
   z-index: 10;
 }
 
-.thumbwheel-gradient-top {
-  top: 0;
+.thumbwheel-gradient-left {
+  left: 0;
   background: linear-gradient(
-    to bottom,
+    to right,
     var(--ui-bg) 0%,
     transparent 100%
   );
 }
 
-.thumbwheel-gradient-bottom {
-  bottom: 0;
+.thumbwheel-gradient-right {
+  right: 0;
   background: linear-gradient(
-    to top,
+    to left,
     var(--ui-bg) 0%,
     transparent 100%
   );
@@ -179,10 +170,11 @@ watch(
 .thumbwheel-scroll {
   width: 100%;
   height: 100%;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
+  overflow-x: scroll;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  display: flex;
+  flex-direction: row;
 }
 
 .thumbwheel-scroll::-webkit-scrollbar {
@@ -190,10 +182,11 @@ watch(
 }
 
 .thumbwheel-tick {
-  height: 16px;
+  width: 16px;
   scroll-snap-align: center;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-right: 1px solid rgba(128, 128, 128, 0.2);
   position: relative;
+  flex: 0 0 auto;
 }
 
 .thumbwheel-tick::after {
@@ -206,17 +199,5 @@ watch(
   border-radius: 50%;
   background: rgba(128, 128, 128, 0.35);
   transform: translate(-50%, -50%);
-}
-
-.thumbwheel-indicator {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: rgba(128, 128, 128, 0.6);
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 20;
 }
 </style>

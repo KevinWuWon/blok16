@@ -454,7 +454,7 @@ function copyLink() {
               </template>
             </div>
 
-            <div class="relative inline-block">
+            <div class="flex flex-col items-center">
               <BoardComponent
                 ref="boardComponentRef"
                 :board="game.board as Board"
@@ -473,9 +473,9 @@ function copyLink() {
                 @drag-start="startDrag"
               />
               <!-- Thumbwheel for cycling through placements -->
+<!--              v-if="interaction.type === 'placing'"-->
               <div
-                v-if="interaction.type === 'placing'"
-                class="absolute left-full top-0 h-full ml-2"
+                class="mt-2 w-24 h-12"
               >
                 <PlacementThumbwheel
                   :placements="allValidPlacements"
