@@ -15,18 +15,26 @@ const emit = defineEmits<{
 }>();
 
 const scrollContainer = ref<HTMLElement | null>(null);
-const TICK_HEIGHT = 20;
-const CONTAINER_HEIGHT = 120;
+const thumbwheelRef = ref<HTMLElement | null>(null);
+const TICK_HEIGHT = 16;
 const isScrolling = ref(false);
+
+// Get actual container height dynamically
+function getContainerHeight(): number {
+  return thumbwheelRef.value?.clientHeight ?? 200;
+}
 
 // Calculate how many times to repeat placements to ensure scrollability
 // Need at least 3x container height of content for infinite scroll to work
-const repeatCount = computed(() => {
+function calculateRepeatCount(): number {
   if (props.placements.length === 0) return 0;
-  const minTicks = Math.ceil((CONTAINER_HEIGHT * 3) / TICK_HEIGHT); // ~18 ticks minimum
+  const containerHeight = getContainerHeight();
+  const minTicks = Math.ceil((containerHeight * 3) / TICK_HEIGHT);
   const repeatsNeeded = Math.ceil(minTicks / props.placements.length);
   return Math.max(3, repeatsNeeded); // At least 3 repeats
-});
+}
+
+const repeatCount = ref(3);
 
 const totalTicks = computed(() => props.placements.length * repeatCount.value);
 
@@ -78,7 +86,12 @@ function onScroll() {
   }
 }
 
-onMounted(() => nextTick(() => scrollToIndex(props.currentIndex)));
+onMounted(() => {
+  nextTick(() => {
+    repeatCount.value = calculateRepeatCount();
+    nextTick(() => scrollToIndex(props.currentIndex));
+  });
+});
 
 watch(
   () => props.currentIndex,
@@ -98,6 +111,7 @@ watch(
 <template>
   <div
     v-if="placements.length > 1"
+    ref="thumbwheelRef"
     class="thumbwheel"
   >
     <div class="thumbwheel-gradient-top" />
@@ -120,17 +134,17 @@ watch(
 <style scoped>
 .thumbwheel {
   position: relative;
-  width: 48px;
-  height: 120px;
+  width: 24px;
+  height: 100%;
   border-radius: 4px;
   overflow: hidden;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 30%,
+    rgba(0, 0, 0, 0.12) 0%,
+    rgba(255, 255, 255, 0.06) 30%,
     rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 70%,
-    rgba(0, 0, 0, 0.15) 100%
+    rgba(255, 255, 255, 0.06) 70%,
+    rgba(0, 0, 0, 0.12) 100%
   );
 }
 
@@ -139,19 +153,27 @@ watch(
   position: absolute;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 30%;
   pointer-events: none;
   z-index: 10;
 }
 
 .thumbwheel-gradient-top {
   top: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+  background: linear-gradient(
+    to bottom,
+    var(--ui-bg) 0%,
+    transparent 100%
+  );
 }
 
 .thumbwheel-gradient-bottom {
   bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  background: linear-gradient(
+    to top,
+    var(--ui-bg) 0%,
+    transparent 100%
+  );
 }
 
 .thumbwheel-scroll {
@@ -168,9 +190,9 @@ watch(
 }
 
 .thumbwheel-tick {
-  height: 20px;
+  height: 16px;
   scroll-snap-align: center;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
   position: relative;
 }
 
@@ -179,10 +201,10 @@ watch(
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
-  background: rgba(128, 128, 128, 0.4);
+  background: rgba(128, 128, 128, 0.35);
   transform: translate(-50%, -50%);
 }
 
@@ -192,7 +214,7 @@ watch(
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(128, 128, 128, 0.6);
   transform: translateY(-50%);
   pointer-events: none;
   z-index: 20;
