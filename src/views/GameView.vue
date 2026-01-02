@@ -472,17 +472,6 @@ function copyLink() {
                 @cell-click="handleBoardClick"
                 @drag-start="startDrag"
               />
-              <!-- Thumbwheel for cycling through placements -->
-<!--              v-if="interaction.type === 'placing'"-->
-              <div
-                class="mt-2 w-24 h-12"
-              >
-                <PlacementThumbwheel
-                  :placements="allValidPlacements"
-                  :current-index="currentPlacementIndex"
-                  @update:current-index="setPlacementByIndex"
-                />
-              </div>
             </div>
 
             <!-- Mobile: Inline piece tray (browsing state) -->
@@ -543,7 +532,7 @@ function copyLink() {
             <!-- Mobile: Placement controls (placing state) -->
             <div
               v-if="derivedUIState === 'placing'"
-              class="md:hidden w-full border-t border-default mt-2 p-4"
+              class="md:hidden flex-1 flex items-center justify-center mt-2 p-4 gap-3"
             >
               <div class="flex flex-col gap-3 max-w-sm mx-auto">
                 <!-- Preview + manipulation row -->
@@ -591,6 +580,18 @@ function copyLink() {
                     @click="flipPieceAction"
                   />
                 </div>
+              </div>
+
+              <!-- Thumbwheel for cycling through placements -->
+              <!--              v-if="interaction.type === 'placing'"-->
+              <div
+                class="w-12 h-28 relative"
+              >
+                <PlacementThumbwheel
+                  :placements="allValidPlacements"
+                  :current-index="currentPlacementIndex"
+                  @update:current-index="setPlacementByIndex"
+                />
               </div>
             </div>
           </main>
