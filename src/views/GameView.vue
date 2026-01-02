@@ -454,7 +454,7 @@ function copyLink() {
               </template>
             </div>
 
-            <div class="flex items-stretch gap-2">
+            <div class="relative inline-block">
               <BoardComponent
                 ref="boardComponentRef"
                 :board="game.board as Board"
@@ -473,12 +473,16 @@ function copyLink() {
                 @drag-start="startDrag"
               />
               <!-- Thumbwheel for cycling through placements -->
-              <PlacementThumbwheel
+              <div
                 v-if="interaction.type === 'placing'"
-                :placements="allValidPlacements"
-                :current-index="currentPlacementIndex"
-                @update:current-index="setPlacementByIndex"
-              />
+                class="absolute left-full top-0 h-full ml-2"
+              >
+                <PlacementThumbwheel
+                  :placements="allValidPlacements"
+                  :current-index="currentPlacementIndex"
+                  @update:current-index="setPlacementByIndex"
+                />
+              </div>
             </div>
 
             <!-- Mobile: Inline piece tray (browsing state) -->
