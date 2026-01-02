@@ -18,79 +18,121 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const thumbwheelRef = ref<HTMLElement | null>(null);
 const TICK_HEIGHT = 16;
 const TICKS_PER_POSITION = 2;
-const isScrolling = ref(false);
+const isAdjustingScroll = ref(false);
+const scrollOrigin = ref(0);
+const indexOrigin = ref(0);
+const sections = ref(3);
+const maxSections = ref(7);
 
 // Get actual container height dynamically
 function getContainerHeight(): number {
   return thumbwheelRef.value?.clientHeight ?? 200;
 }
 
-// Calculate how many times to repeat placements to ensure scrollability
+// Calculate how many sections to render for scrollability
 // Need at least 3x container height of content for infinite scroll to work
-function calculateRepeatCount(): number {
+function calculateInitialSections(): number {
   if (props.placements.length === 0) return 0;
   const containerHeight = getContainerHeight();
   const minTicks = Math.ceil((containerHeight * 3) / TICK_HEIGHT);
   const ticksPerSection = props.placements.length * TICKS_PER_POSITION;
-  const repeatsNeeded = Math.ceil(minTicks / ticksPerSection);
-  return Math.max(3, repeatsNeeded); // At least 3 repeats
+  const sectionsNeeded = Math.ceil(minTicks / ticksPerSection);
+  return Math.max(3, sectionsNeeded); // At least 3 sections
 }
 
-const repeatCount = ref(3);
-
 const totalTicks = computed(
-  () => props.placements.length * repeatCount.value * TICKS_PER_POSITION,
+  () => props.placements.length * sections.value * TICKS_PER_POSITION,
 );
 
-// The "middle section" starts at this offset
-const middleSectionStart = computed(() => {
-  const sectionsBeforeMiddle = Math.floor(repeatCount.value / 2);
-  return (
-    sectionsBeforeMiddle *
-    props.placements.length *
-    TICK_HEIGHT *
-    TICKS_PER_POSITION
-  );
-});
+const sectionHeight = computed(
+  () => props.placements.length * TICK_HEIGHT * TICKS_PER_POSITION,
+);
 
-function scrollToIndex(index: number, smooth = false) {
+function normalizeIndex(index: number, length: number): number {
+  if (length <= 0) return 0;
+  return ((index % length) + length) % length;
+}
+
+function resetScrollPosition() {
   if (!scrollContainer.value || props.placements.length === 0) return;
-  scrollContainer.value.scrollTo({
-    top: middleSectionStart.value + index * TICK_HEIGHT * TICKS_PER_POSITION,
-    behavior: smooth ? "smooth" : "instant",
-  });
+  isAdjustingScroll.value = true;
+  // Start one section down so we can grow in both directions.
+  scrollContainer.value.scrollTop = sectionHeight.value;
+  scrollOrigin.value = scrollContainer.value.scrollTop;
+  isAdjustingScroll.value = false;
+}
+
+function trimFromTop(height: number) {
+  if (!scrollContainer.value) return;
+  sections.value -= 1;
+  isAdjustingScroll.value = true;
+  scrollContainer.value.scrollTop -= height;
+  scrollOrigin.value -= height;
+  isAdjustingScroll.value = false;
+}
+
+function trimFromBottom() {
+  sections.value -= 1;
+}
+
+function prependSection(height: number) {
+  if (!scrollContainer.value) return;
+  sections.value += 1;
+  isAdjustingScroll.value = true;
+  scrollContainer.value.scrollTop += height;
+  scrollOrigin.value += height;
+  isAdjustingScroll.value = false;
+
+  if (sections.value > maxSections.value) {
+    trimFromBottom();
+  }
+}
+
+function appendSection(height: number) {
+  sections.value += 1;
+  if (sections.value > maxSections.value) {
+    trimFromTop(height);
+  }
+}
+
+function maybeGrow(scrollTop: number): number {
+  if (!scrollContainer.value || props.placements.length === 0) return scrollTop;
+  const containerHeight = scrollContainer.value.clientHeight;
+  const totalHeight = totalTicks.value * TICK_HEIGHT;
+  const height = sectionHeight.value;
+  if (height === 0 || totalHeight === 0) return scrollTop;
+
+  // Use a small threshold so a single prepend/append moves us out of the edge zone.
+  const threshold = Math.min(containerHeight * 0.5, height);
+  if (scrollTop < threshold) {
+    prependSection(height);
+  } else if (scrollTop + containerHeight > totalHeight - threshold) {
+    appendSection(height);
+  }
+
+  return scrollContainer.value.scrollTop;
 }
 
 function onScroll() {
   if (
     !scrollContainer.value ||
     props.placements.length === 0 ||
-    isScrolling.value
+    isAdjustingScroll.value
   )
     return;
 
-  const scrollTop = scrollContainer.value.scrollTop;
-  const sectionHeight =
-    props.placements.length * TICK_HEIGHT * TICKS_PER_POSITION;
-  const totalHeight = totalTicks.value * TICK_HEIGHT;
+  let scrollTop = scrollContainer.value.scrollTop;
+  console.log(scrollTop)
+  scrollTop = maybeGrow(scrollTop);
 
-  // Reset to middle section if scrolled into first or last quarter
-  const lowerBound = sectionHeight;
-  const upperBound = totalHeight - sectionHeight * 2;
-
-  if (scrollTop < lowerBound || scrollTop > upperBound) {
-    isScrolling.value = true;
-    // Jump by one full section toward the middle
-    const adjustment = scrollTop < lowerBound ? sectionHeight : -sectionHeight;
-    scrollContainer.value.scrollTop = scrollTop + adjustment;
-    isScrolling.value = false;
-  }
-
-  // Calculate current index from scroll position
-  const relativeScroll = scrollTop % sectionHeight;
-  const newIndex =
-    Math.round(relativeScroll / (TICK_HEIGHT * TICKS_PER_POSITION)) %
-    props.placements.length;
+  // Calculate current index from scroll delta
+  const positionDelta = Math.round(
+    (scrollTop - scrollOrigin.value) / (TICK_HEIGHT * TICKS_PER_POSITION),
+  );
+  const newIndex = normalizeIndex(
+    indexOrigin.value + positionDelta,
+    props.placements.length,
+  );
 
   if (newIndex !== props.currentIndex) {
     emit("update:currentIndex", newIndex);
@@ -99,22 +141,42 @@ function onScroll() {
 
 onMounted(() => {
   nextTick(() => {
-    repeatCount.value = calculateRepeatCount();
-    nextTick(() => scrollToIndex(props.currentIndex));
+    const initialSections = calculateInitialSections();
+    sections.value = initialSections;
+    maxSections.value = Math.max(initialSections + 4, 7);
+    nextTick(() => {
+      indexOrigin.value = normalizeIndex(
+        props.currentIndex,
+        props.placements.length,
+      );
+      resetScrollPosition();
+    });
   });
 });
 
 watch(
   () => props.currentIndex,
   (newIndex) => {
-    scrollToIndex(newIndex, true);
+    indexOrigin.value = normalizeIndex(newIndex, props.placements.length);
+    if (scrollContainer.value) {
+      scrollOrigin.value = scrollContainer.value.scrollTop;
+    }
   },
 );
 
 watch(
   () => props.placements.length,
   () => {
-    nextTick(() => scrollToIndex(props.currentIndex));
+    nextTick(() => {
+      const initialSections = calculateInitialSections();
+      sections.value = initialSections;
+      maxSections.value = Math.max(initialSections + 4, 7);
+      indexOrigin.value = normalizeIndex(
+        props.currentIndex,
+        props.placements.length,
+      );
+      resetScrollPosition();
+    });
   },
 );
 </script>
