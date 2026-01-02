@@ -503,3 +503,114 @@ export const passTurn = mutation({
     return { success: true };
   },
 });
+
+export const requestRematch = mutation({
+  args: { code: v.string(), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      return { success: false, error: "Game not found" };
+    }
+
+    if (game.status !== "finished") {
+      return { success: false, error: "Game is not finished" };
+    }
+
+    if (game.nextGameCode) {
+      return { success: false, error: "Rematch already started", nextGameCode: game.nextGameCode };
+    }
+
+    // Determine player color
+    let playerColor: PlayerColor;
+    if (normalizePlayer(game.players.blue) === args.playerId) {
+      playerColor = "blue";
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
+      playerColor = "orange";
+    } else {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    // Update rematch requests
+    const newRematchRequests = {
+      ...game.rematchRequests,
+      [playerColor]: true as const,
+    };
+
+    // Check if both players want rematch
+    if (newRematchRequests.blue && newRematchRequests.orange) {
+      // Create new game with swapped colors
+      let newCode: string;
+      let existing: Doc<"games"> | null;
+      do {
+        newCode = generateCode();
+        existing = await ctx.db
+          .query("games")
+          .withIndex("by_code", (q) => q.eq("code", newCode))
+          .first();
+      } while (existing);
+
+      const allPieces = Array.from({ length: 21 }, (_, i) => i);
+
+      // Swap colors: old blue becomes new orange, old orange becomes new blue
+      await ctx.db.insert("games", {
+        code: newCode,
+        board: createEmptyBoard(),
+        players: {
+          blue: game.players.orange,
+          orange: game.players.blue,
+        },
+        pieces: { blue: allPieces, orange: [...allPieces] },
+        currentTurn: "blue",
+        status: "playing",
+        winner: null,
+        lastPassedBy: null,
+        previousGameCode: args.code,
+        createdAt: Date.now(),
+      });
+
+      // Update old game with link to new game
+      await ctx.db.patch(game._id, {
+        rematchRequests: newRematchRequests,
+        nextGameCode: newCode,
+      });
+
+      // Notify both players
+      const bluePlayerId = normalizePlayer(game.players.blue);
+      const orangePlayerId = normalizePlayer(game.players.orange);
+
+      if (bluePlayerId) {
+        await schedulePushNotification(
+          ctx.scheduler,
+          bluePlayerId,
+          "Blokus Duo",
+          "Rematch is starting!",
+          newCode,
+          "rematch-starting"
+        );
+      }
+      if (orangePlayerId) {
+        await schedulePushNotification(
+          ctx.scheduler,
+          orangePlayerId,
+          "Blokus Duo",
+          "Rematch is starting!",
+          newCode,
+          "rematch-starting"
+        );
+      }
+
+      return { success: true, newGameCode: newCode };
+    }
+
+    // First request - just store it
+    await ctx.db.patch(game._id, {
+      rematchRequests: newRematchRequests,
+    });
+
+    return { success: true, waiting: true };
+  },
+});

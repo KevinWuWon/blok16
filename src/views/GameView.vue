@@ -13,6 +13,7 @@ import PlacementThumbwheel from "@/components/PlacementThumbwheel.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
+import RematchPanel from "@/components/RematchPanel.vue";
 import { useGameRole } from "@/composables/useGameRole";
 import { useGameState } from "@/composables/useGameState";
 import { useGameInteraction } from "@/composables/useGameInteraction";
@@ -43,6 +44,7 @@ onMounted(async () => {
 // Game role from IndexedDB
 const gameRole = computed(() => useGameRole(code.value));
 const role = computed(() => gameRole.value.role.value);
+const storedPlayerName = computed(() => gameRole.value.playerName.value);
 
 // Mutations
 const claimColorMutation = useConvexMutation(api.games.claimColor);
@@ -402,6 +404,14 @@ const opponentHasNoMoves = computed(() => {
                     {{ game.winner === myColor ? "You win!" : "You lose!" }}
                   </span>
                 </div>
+                <RematchPanel
+                  v-if="myColor"
+                  :game="game"
+                  :code="code"
+                  :player-id="playerId"
+                  :my-color="myColor"
+                  :player-name="storedPlayerName ?? 'Anonymous'"
+                />
               </template>
               <template v-else>
                 <div class="flex items-center gap-6">

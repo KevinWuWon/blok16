@@ -25,6 +25,13 @@ export default defineSchema({
     lastPassedBy: v.union(v.literal("blue"), v.literal("orange"), v.null()),
     lastPlacement: v.optional(v.array(v.array(v.number()))),
     createdAt: v.number(),
+    // Rematch flow
+    rematchRequests: v.optional(v.object({
+      blue: v.optional(v.literal(true)),
+      orange: v.optional(v.literal(true)),
+    })),
+    nextGameCode: v.optional(v.string()),
+    previousGameCode: v.optional(v.string()),
   }).index("by_code", ["code"]),
 
   // Push notification subscriptions
