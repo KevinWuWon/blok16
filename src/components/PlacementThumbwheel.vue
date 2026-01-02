@@ -18,6 +18,7 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const thumbwheelRef = ref<HTMLElement | null>(null);
 const TICK_HEIGHT = 16;
 const TICKS_PER_POSITION = 2;
+const HAPTIC_DURATION_MS = 8;
 const isAdjustingScroll = ref(false);
 const scrollOrigin = ref(0);
 const indexOrigin = ref(0);
@@ -51,6 +52,13 @@ const sectionHeight = computed(
 function normalizeIndex(index: number, length: number): number {
   if (length <= 0) return 0;
   return ((index % length) + length) % length;
+}
+
+function hapticClick() {
+  if (typeof navigator === "undefined") return;
+  if ("vibrate" in navigator) {
+    navigator.vibrate(HAPTIC_DURATION_MS);
+  }
 }
 
 function resetScrollPosition() {
@@ -122,7 +130,6 @@ function onScroll() {
     return;
 
   let scrollTop = scrollContainer.value.scrollTop;
-  console.log(scrollTop)
   scrollTop = maybeGrow(scrollTop);
 
   // Calculate current index from scroll delta
@@ -135,6 +142,7 @@ function onScroll() {
   );
 
   if (newIndex !== props.currentIndex) {
+    hapticClick();
     emit("update:currentIndex", newIndex);
   }
 }
