@@ -12,7 +12,7 @@ type OnboardingState =
 
 // Derived UI state - combines server game state with client interaction state
 // This is the single source of truth for what the UI should display
-type DerivedUIState =
+export type DerivedUIState =
   | "onboarding" // Onboarding not complete (role selection in progress)
   | "waiting_for_opponent" // Game created, waiting for player 2
   | "my_turn" // Active game, it's my turn, no piece selected

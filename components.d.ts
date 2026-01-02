@@ -12,11 +12,18 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Board: typeof import('./src/components/Board.vue')['default']
+    GameControlsFooter: typeof import('./src/components/GameControlsFooter.vue')['default']
+    GameHeader: typeof import('./src/components/GameHeader.vue')['default']
+    GameResult: typeof import('./src/components/GameResult.vue')['default']
     HelpDialog: typeof import('./src/components/HelpDialog.vue')['default']
+    MobilePlacementControls: typeof import('./src/components/MobilePlacementControls.vue')['default']
     NotificationStatusDialog: typeof import('./src/components/NotificationStatusDialog.vue')['default']
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
+    PieceSidebar: typeof import('./src/components/PieceSidebar.vue')['default']
+    PieceTabs: typeof import('./src/components/PieceTabs.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
     PlacementThumbwheel: typeof import('./src/components/PlacementThumbwheel.vue')['default']
+    PlayerTurnIndicator: typeof import('./src/components/PlayerTurnIndicator.vue')['default']
     RematchPanel: typeof import('./src/components/RematchPanel.vue')['default']
     RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
@@ -30,6 +37,6 @@ declare module 'vue' {
     UIcon: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
     UModal: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
-    UTooltip: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Tooltip.vue')['default']
+    WaitingScreen: typeof import('./src/components/WaitingScreen.vue')['default']
   }
 }
