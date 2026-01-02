@@ -4,7 +4,8 @@ import { useRoute } from "vue-router";
 import { useConvexMutation } from "convex-vue";
 import { useClipboard } from "@vueuse/core";
 import { api } from "../../convex/_generated/api";
-import type { Board } from "../../lib/validation";
+import { hasValidMoves, type Board } from "../../lib/validation";
+import { PIECES } from "../../convex/shared/pieces";
 import BoardComponent from "@/components/Board.vue";
 import PieceTray from "@/components/PieceTray.vue";
 import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
@@ -219,6 +220,25 @@ const { copy, copied } = useClipboard();
 function copyLink() {
   copy(gameUrl.value);
 }
+
+// Calculate remaining cells for each player
+function countRemainingCells(pieceIds: number[]): number {
+  return pieceIds.reduce((sum, id) => sum + (PIECES[id]?.size ?? 0), 0);
+}
+const myRemainingCells = computed(() => countRemainingCells(myPieces.value));
+const opponentRemainingCells = computed(() => countRemainingCells(opponentPieces.value));
+
+// Check if player has no legal moves (canPass is true when no moves available)
+const myHasNoMoves = computed(() => canPass.value);
+const opponentHasNoMoves = computed(() => {
+  if (!game.value || !myColor.value) return false;
+  const opponentColor = myColor.value === "blue" ? "orange" : "blue";
+  return !hasValidMoves(
+    game.value.board as Board,
+    opponentPieces.value,
+    opponentColor,
+  );
+});
 </script>
 
 <template>
@@ -334,9 +354,13 @@ function copyLink() {
             class="hidden md:flex md:flex-col flex-1 min-w-48 border-r border-default"
           >
             <h3
-              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0"
+              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0 flex items-center justify-between"
             >
-              Your Pieces
+              <span>Your Pieces</span>
+              <span
+                v-if="myHasNoMoves"
+                class="text-muted font-normal"
+              >{{ myRemainingCells }} cells</span>
             </h3>
             <div class="flex-1 overflow-y-auto p-2">
               <PieceTray
@@ -470,7 +494,10 @@ function copyLink() {
                   ]"
                   @click="switchTab('mine')"
                 >
-                  Mine
+                  Mine<span
+                    v-if="myHasNoMoves"
+                    class="text-muted font-normal"
+                  > ({{ myRemainingCells }})</span>
                 </button>
                 <button
                   :class="[
@@ -481,7 +508,10 @@ function copyLink() {
                   ]"
                   @click="switchTab('opponent')"
                 >
-                  {{ opponentName }}
+                  {{ opponentName }}<span
+                    v-if="opponentHasNoMoves"
+                    class="text-muted font-normal"
+                  > ({{ opponentRemainingCells }})</span>
                 </button>
               </div>
               <!-- Tab content -->
@@ -582,9 +612,13 @@ function copyLink() {
             class="hidden lg:flex lg:flex-col flex-1 min-w-48 border-l border-default"
           >
             <h3
-              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0"
+              class="text-sm font-semibold py-2 px-3 border-b border-default shrink-0 flex items-center justify-between"
             >
-              {{ opponentName }}'s Pieces
+              <span>{{ opponentName }}'s Pieces</span>
+              <span
+                v-if="opponentHasNoMoves"
+                class="text-muted font-normal"
+              >{{ opponentRemainingCells }} cells</span>
             </h3>
             <div class="flex-1 overflow-y-auto p-2">
               <PieceTray
