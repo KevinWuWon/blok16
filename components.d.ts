@@ -15,6 +15,7 @@ declare module 'vue' {
     NotificationStatusDialog: typeof import('./src/components/NotificationStatusDialog.vue')['default']
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
+    PlacementThumbwheel: typeof import('./src/components/PlacementThumbwheel.vue')['default']
     RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

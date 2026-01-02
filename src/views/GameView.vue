@@ -8,6 +8,7 @@ import type { Board } from "../../lib/validation";
 import BoardComponent from "@/components/Board.vue";
 import PieceTray from "@/components/PieceTray.vue";
 import PieceMiniPreview from "@/components/PieceMiniPreview.vue";
+import PlacementThumbwheel from "@/components/PlacementThumbwheel.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
@@ -71,6 +72,8 @@ const {
   selectedPieceId,
   currentOrientationIndex,
   previewCells,
+  allValidPlacements,
+  currentPlacementIndex,
   openTray,
   closeTray,
   switchTab,
@@ -81,6 +84,7 @@ const {
   flipPieceAction,
   updatePreview,
   handleBoardClick,
+  setPlacementByIndex,
 } = useGameInteraction(game, myColor, myPieces, isMyTurn);
 
 const interactionType = computed(() => interaction.value.type);
@@ -450,23 +454,33 @@ function copyLink() {
               </template>
             </div>
 
-            <BoardComponent
-              ref="boardComponentRef"
-              :board="game.board as Board"
-              :preview-cells="previewCells"
-              :preview-color="myColor || 'blue'"
-              :valid-anchors="
-                selectedPieceId !== null
-                  ? validAnchorsForSelectedPiece
-                  : validAnchors
-              "
-              :show-anchors="isMyTurn && selectedPieceId !== null"
-              :is-dragging="isDragging"
-              :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
-              :last-placement-cells="(game.lastPlacement as [number, number][])"
-              @cell-click="handleBoardClick"
-              @drag-start="startDrag"
-            />
+            <div class="relative">
+              <BoardComponent
+                ref="boardComponentRef"
+                :board="game.board as Board"
+                :preview-cells="previewCells"
+                :preview-color="myColor || 'blue'"
+                :valid-anchors="
+                  selectedPieceId !== null
+                    ? validAnchorsForSelectedPiece
+                    : validAnchors
+                "
+                :show-anchors="isMyTurn && selectedPieceId !== null"
+                :is-dragging="isDragging"
+                :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
+                :last-placement-cells="(game.lastPlacement as [number, number][])"
+                @cell-click="handleBoardClick"
+                @drag-start="startDrag"
+              />
+              <!-- Thumbwheel for cycling through placements -->
+              <PlacementThumbwheel
+                v-if="interaction.type === 'placing'"
+                :placements="allValidPlacements"
+                :current-index="currentPlacementIndex"
+                class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+8px)]"
+                @update:current-index="setPlacementByIndex"
+              />
+            </div>
 
             <!-- Mobile: Inline piece tray (browsing state) -->
             <div
