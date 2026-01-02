@@ -454,7 +454,7 @@ function copyLink() {
               </template>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-stretch gap-2">
               <BoardComponent
                 ref="boardComponentRef"
                 :board="game.board as Board"
@@ -477,7 +477,6 @@ function copyLink() {
                 v-if="interaction.type === 'placing'"
                 :placements="allValidPlacements"
                 :current-index="currentPlacementIndex"
-                class="self-stretch"
                 @update:current-index="setPlacementByIndex"
               />
             </div>
