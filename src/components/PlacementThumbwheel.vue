@@ -17,6 +17,7 @@ const emit = defineEmits<{
 const scrollContainer = ref<HTMLElement | null>(null);
 const thumbwheelRef = ref<HTMLElement | null>(null);
 const TICK_HEIGHT = 16;
+const TICKS_PER_POSITION = 2;
 const isScrolling = ref(false);
 
 // Get actual container height dynamically
@@ -30,24 +31,32 @@ function calculateRepeatCount(): number {
   if (props.placements.length === 0) return 0;
   const containerHeight = getContainerHeight();
   const minTicks = Math.ceil((containerHeight * 3) / TICK_HEIGHT);
-  const repeatsNeeded = Math.ceil(minTicks / props.placements.length);
+  const ticksPerSection = props.placements.length * TICKS_PER_POSITION;
+  const repeatsNeeded = Math.ceil(minTicks / ticksPerSection);
   return Math.max(3, repeatsNeeded); // At least 3 repeats
 }
 
 const repeatCount = ref(3);
 
-const totalTicks = computed(() => props.placements.length * repeatCount.value);
+const totalTicks = computed(
+  () => props.placements.length * repeatCount.value * TICKS_PER_POSITION,
+);
 
 // The "middle section" starts at this offset
 const middleSectionStart = computed(() => {
   const sectionsBeforeMiddle = Math.floor(repeatCount.value / 2);
-  return sectionsBeforeMiddle * props.placements.length * TICK_HEIGHT;
+  return (
+    sectionsBeforeMiddle *
+    props.placements.length *
+    TICK_HEIGHT *
+    TICKS_PER_POSITION
+  );
 });
 
 function scrollToIndex(index: number, smooth = false) {
   if (!scrollContainer.value || props.placements.length === 0) return;
   scrollContainer.value.scrollTo({
-    top: middleSectionStart.value + index * TICK_HEIGHT,
+    top: middleSectionStart.value + index * TICK_HEIGHT * TICKS_PER_POSITION,
     behavior: smooth ? "smooth" : "instant",
   });
 }
@@ -61,7 +70,8 @@ function onScroll() {
     return;
 
   const scrollTop = scrollContainer.value.scrollTop;
-  const sectionHeight = props.placements.length * TICK_HEIGHT;
+  const sectionHeight =
+    props.placements.length * TICK_HEIGHT * TICKS_PER_POSITION;
   const totalHeight = totalTicks.value * TICK_HEIGHT;
 
   // Reset to middle section if scrolled into first or last quarter
@@ -79,7 +89,8 @@ function onScroll() {
   // Calculate current index from scroll position
   const relativeScroll = scrollTop % sectionHeight;
   const newIndex =
-    Math.round(relativeScroll / TICK_HEIGHT) % props.placements.length;
+    Math.round(relativeScroll / (TICK_HEIGHT * TICKS_PER_POSITION)) %
+    props.placements.length;
 
   if (newIndex !== props.currentIndex) {
     emit("update:currentIndex", newIndex);

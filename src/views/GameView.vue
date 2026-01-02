@@ -378,7 +378,7 @@ function copyLink() {
           >
             <!-- Game status / Turn indicator (hidden on mobile when piece tray is open during active game) -->
             <div
-              class="mb-8"
+              class="mb-4"
               :class="{ 'hidden md:block': derivedUIState === 'browsing' }"
             >
               <template v-if="game.status === 'finished'">
