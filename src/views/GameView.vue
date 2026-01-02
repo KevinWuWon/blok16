@@ -13,6 +13,7 @@ import PlacementThumbwheel from "@/components/PlacementThumbwheel.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
+import HelpDialog from "@/components/HelpDialog.vue";
 import RematchPanel from "@/components/RematchPanel.vue";
 import { useGameRole } from "@/composables/useGameRole";
 import { useGameState } from "@/composables/useGameState";
@@ -162,8 +163,9 @@ const {
 // Get Convex URL for service worker subscription refresh
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
 
-// Notification dialog state
+// Dialog states
 const notificationDialogOpen = ref(false);
+const helpDialogOpen = ref(false);
 
 // Bell icon based on permission state
 const bellIcon = computed(() => {
@@ -298,6 +300,14 @@ const opponentHasNoMoves = computed(() => {
         </div>
         <!-- Game status in header -->
         <div class="flex items-center gap-2">
+          <!-- Help button -->
+          <UButton
+            variant="ghost"
+            size="xl"
+            icon="i-lucide-circle-help"
+            title="How to play"
+            @click="helpDialogOpen = true"
+          />
           <!-- Notification status button -->
           <UButton
             v-if="notificationsSupported"
@@ -799,6 +809,12 @@ const opponentHasNoMoves = computed(() => {
         :game-code="code"
         @update:open="notificationDialogOpen = $event"
         @subscribe="handleNotificationSubscribe"
+      />
+
+      <!-- Help dialog -->
+      <HelpDialog
+        :open="helpDialogOpen"
+        @update:open="helpDialogOpen = $event"
       />
     </template>
   </div>
