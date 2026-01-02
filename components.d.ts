@@ -16,6 +16,7 @@ declare module 'vue' {
     PieceMiniPreview: typeof import('./src/components/PieceMiniPreview.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
     PlacementThumbwheel: typeof import('./src/components/PlacementThumbwheel.vue')['default']
+    RematchPanel: typeof import('./src/components/RematchPanel.vue')['default']
     RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
