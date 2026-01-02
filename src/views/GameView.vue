@@ -293,7 +293,7 @@ function copyLink() {
         v-if="game.status === 'waiting'"
         class="flex-1 flex flex-col items-center justify-center p-4"
       >
-        <div class="text-center space-y-4">
+        <div class="text-center space-y-4 w-full">
           <UIcon
             name="i-lucide-users"
             class="w-12 h-12 mx-auto text-muted"
@@ -304,12 +304,12 @@ function copyLink() {
           <p class="text-muted">
             Share this link with a friend:
           </p>
-          <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-center gap-2 w-full">
             <UInput
               :value="gameUrl"
               size="xl"
               readonly
-              class="w-64"
+              class="w-full text-center"
             />
             <UTooltip
               :text="copied ? 'Copied!' : 'Copy to clipboard'"
