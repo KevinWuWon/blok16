@@ -285,23 +285,6 @@ function copyLink() {
             title="Notification settings"
             @click="notificationDialogOpen = true"
           />
-          <template v-if="game.status === 'waiting'">
-            <UTooltip
-              :text="copied ? 'Copied!' : 'Copy link to clipboard'"
-              :open="copied ? true : undefined"
-            >
-              <UButton
-                :color="copied ? 'success' : 'neutral'"
-                variant="outline"
-                size="xl"
-                :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-                @click="copyLink"
-              >
-                {{ copied ? 'Copied!' : 'Copy Link' }}
-              </UButton>
-            </UTooltip>
-          </template>
-          <template v-else />
         </div>
       </header>
 
@@ -321,7 +304,7 @@ function copyLink() {
           <p class="text-muted">
             Share this link with a friend:
           </p>
-          <div class="flex items-center gap-2 justify-center">
+          <div class="flex flex-col items-center gap-2">
             <UInput
               :value="gameUrl"
               size="xl"
@@ -337,7 +320,9 @@ function copyLink() {
                 :color="copied ? 'success' : 'neutral'"
                 :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
                 @click="copyLink"
-              />
+              >
+                {{ copied ? 'Copied!' : 'Copy Link' }}
+              </UButton>
             </UTooltip>
           </div>
         </div>
