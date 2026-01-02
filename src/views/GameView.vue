@@ -311,19 +311,14 @@ function copyLink() {
               readonly
               class="w-full text-center"
             />
-            <UTooltip
-              :text="copied ? 'Copied!' : 'Copy to clipboard'"
-              :open="copied ? true : undefined"
+            <UButton
+              size="xl"
+              :color="copied ? 'success' : 'neutral'"
+              :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
+              @click="copyLink"
             >
-              <UButton
-                size="xl"
-                :color="copied ? 'success' : 'neutral'"
-                :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-                @click="copyLink"
-              >
-                {{ copied ? 'Copied!' : 'Copy Link' }}
-              </UButton>
-            </UTooltip>
+              {{ copied ? 'Copied!' : 'Copy Link' }}
+            </UButton>
           </div>
         </div>
       </div>
