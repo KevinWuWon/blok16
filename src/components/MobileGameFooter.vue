@@ -37,10 +37,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="md:hidden border-t border-default bg-background">
-    <div class="flex h-48">
-      <!-- Left side: Tabbed piece tray -->
-      <div class="flex-1 flex flex-col min-w-0">
+  <div class="md:hidden flex-1 flex border-t border-default bg-background">
+    <!-- Left side: Tabbed piece tray -->
+    <div class="flex-1 relative">
+      <div class="absolute inset-0 flex flex-col min-w-0">
         <!-- Tabs -->
         <div class="flex border-b border-default shrink-0">
           <button
@@ -73,7 +73,7 @@ const emit = defineEmits<{
           </button>
         </div>
         <!-- Tab content -->
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 overflow-y-auto min-h-0">
           <PieceTray
             v-if="activeTab === 'mine'"
             :pieces="myPieces"
@@ -96,44 +96,44 @@ const emit = defineEmits<{
           />
         </div>
       </div>
+    </div>
 
-      <!-- Right side: Wheel and button column -->
+    <!-- Right side: Wheel and button column -->
+    <div
+      v-if="isMyTurn"
+      class="w-12 flex flex-col border-l border-default"
+    >
+      <!-- Thumbwheel -->
       <div
-        v-if="isMyTurn"
-        class="w-12 flex flex-col border-l border-default"
+        class="flex-1 min-h-0"
+        :class="{ invisible: selectedPieceId === null }"
       >
-        <!-- Thumbwheel -->
-        <div
-          class="flex-1 min-h-0"
-          :class="{ invisible: selectedPieceId === null }"
-        >
-          <PlacementThumbwheel
-            :placements="allValidPlacements"
-            :current-index="currentPlacementIndex"
-            @update:current-index="emit('placementIndexChange', $event)"
-          />
-        </div>
+        <PlacementThumbwheel
+          :placements="allValidPlacements"
+          :current-index="currentPlacementIndex"
+          @update:current-index="emit('placementIndexChange', $event)"
+        />
+      </div>
 
-        <!-- Confirm/Pass button -->
-        <div class="shrink-0 p-1">
-          <UButton
-            v-if="canPass && !previewCells"
-            icon="i-lucide-skip-forward"
-            size="xl"
-            variant="outline"
-            color="warning"
-            class="w-full"
-            @click="emit('pass')"
-          />
-          <UButton
-            v-else
-            icon="i-lucide-check"
-            size="xl"
-            :disabled="!previewCells"
-            class="w-full"
-            @click="emit('confirm')"
-          />
-        </div>
+      <!-- Confirm/Pass button -->
+      <div class="shrink-0 p-1">
+        <UButton
+          v-if="canPass && !previewCells"
+          icon="i-lucide-skip-forward"
+          size="xl"
+          variant="outline"
+          color="warning"
+          class="w-full"
+          @click="emit('pass')"
+        />
+        <UButton
+          v-else
+          icon="i-lucide-check"
+          size="xl"
+          :disabled="!previewCells"
+          class="w-full"
+          @click="emit('confirm')"
+        />
       </div>
     </div>
   </div>
