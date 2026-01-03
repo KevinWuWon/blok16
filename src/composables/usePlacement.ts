@@ -10,7 +10,6 @@ import type { Doc } from "../../convex/_generated/dataModel";
 
 type InteractionState =
   | { type: "idle" }
-  | { type: "browsing"; tab: "mine" | "opponent" }
   | {
       type: "placing";
       pieceId: number;
