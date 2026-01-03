@@ -24,15 +24,12 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <footer class="border-t border-default p-4 lg:py-2 shrink-0">
+  <footer class="hidden md:flex border-t border-default p-4 lg:py-2 shrink-0">
     <div class="flex items-center justify-center gap-2 flex-wrap">
 
-      <!-- Desktop: Selected piece controls (hidden on mobile when placing) -->
+      <!-- Desktop: Selected piece controls -->
       <template v-if="selectedPieceId !== null">
-        <div
-          class="flex items-center gap-1"
-          :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
-        >
+        <div class="flex items-center gap-1">
           <PieceMiniPreview
             :piece-id="selectedPieceId"
             :player-color="myColor || 'blue'"
@@ -40,10 +37,7 @@ const emit = defineEmits<{
             class="w-10 h-10"
           />
         </div>
-        <div
-          class="flex items-center gap-1"
-          :class="{ 'hidden md:flex': derivedUIState === 'placing' }"
-        >
+        <div class="flex items-center gap-1">
           <UButton
             icon="i-lucide-rotate-ccw"
             variant="outline"
@@ -67,12 +61,11 @@ const emit = defineEmits<{
           />
         </div>
 
-        <!-- Confirm/Cancel when preview is active (desktop only) -->
+        <!-- Confirm/Cancel when preview is active -->
         <template v-if="previewCells">
           <UButton
             size="xl"
             color="primary"
-            :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
             @click="emit('confirm')"
           >
             Confirm
@@ -80,7 +73,6 @@ const emit = defineEmits<{
           <UButton
             size="xl"
             variant="outline"
-            :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
             @click="emit('clearPreview')"
           >
             Cancel
@@ -91,7 +83,6 @@ const emit = defineEmits<{
           v-if="!previewCells"
           variant="ghost"
           size="xl"
-          :class="{ 'hidden md:inline-flex': derivedUIState === 'placing' }"
           @click="emit('deselect')"
         >
           Deselect
