@@ -223,9 +223,8 @@ watch(
 
 <style scoped>
 .thumbwheel {
-  position: relative;
-  width: 48px;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   border-left: 1px solid rgba(128, 128, 128, 0.2);
   border-right: 1px solid rgba(128, 128, 128, 0.2);
   background: linear-gradient(

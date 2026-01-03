@@ -123,7 +123,7 @@ function handleCellClick(row: number, col: number) {
       gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
       width: props.compact
         ? 'min(calc(100vw - 32px), calc(100dvh - 280px))'
-        : 'min(calc(100vw - 32px), calc(100dvh - 180px), 560px)',
+        : 'min(calc(100vw - 32px), calc(100dvh - 300px), 560px)',
       aspectRatio: '1',
       height: 'auto',
       touchAction: previewCells ? 'none' : 'auto'

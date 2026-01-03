@@ -37,7 +37,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="md:hidden flex-1 flex border-t border-default bg-background">
+  <div class="md:hidden flex-1 flex border-t border-default bg-background items-stretch">
     <!-- Left side: Tabbed piece tray -->
     <div class="flex-1 relative">
       <div class="absolute inset-0 flex flex-col min-w-0">
@@ -105,7 +105,7 @@ const emit = defineEmits<{
     >
       <!-- Thumbwheel -->
       <div
-        class="flex-1 min-h-0"
+        class="flex-1 min-h-0 relative"
         :class="{ invisible: selectedPieceId === null }"
       >
         <PlacementThumbwheel
