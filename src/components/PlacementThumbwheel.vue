@@ -132,6 +132,15 @@ function onScroll() {
   let scrollTop = scrollContainer.value.scrollTop;
   scrollTop = maybeGrow(scrollTop);
 
+  if (props.placements.length === 1) {
+    // With a single placement the index never changes, so emit on scroll.
+    if (scrollTop !== scrollOrigin.value) {
+      emit("update:currentIndex", 0);
+      scrollOrigin.value = scrollTop;
+    }
+    return;
+  }
+
   // Calculate current index from scroll delta
   const positionDelta = Math.round(
     (scrollTop - scrollOrigin.value) / (TICK_HEIGHT * TICKS_PER_POSITION),
@@ -191,7 +200,7 @@ watch(
 
 <template>
   <div
-    v-if="placements.length > 1"
+    v-if="placements.length > 0"
     ref="thumbwheelRef"
     class="thumbwheel"
   >
