@@ -10,17 +10,14 @@ defineProps<{
   currentOrientationIndex: number;
   previewCells: [number, number][] | null;
   canPass: boolean;
-  interactionType: "idle" | "browsing" | "placing";
+  interactionType: "idle" | "placing";
 }>();
 
 const emit = defineEmits<{
-  openTray: [tab: "mine" | "opponent"];
-  closeTray: [];
   rotate: [direction: "cw" | "ccw"];
   flip: [];
   confirm: [];
   deselect: [];
-  changePiece: [];
   pass: [];
   clearPreview: [];
 }>();
@@ -29,37 +26,6 @@ const emit = defineEmits<{
 <template>
   <footer class="border-t border-default p-4 lg:py-2 shrink-0">
     <div class="flex items-center justify-center gap-2 flex-wrap">
-      <!-- Mobile: Select piece button (idle state) -->
-      <UButton
-        v-if="derivedUIState === 'my_turn'"
-        size="xl"
-        class="md:hidden"
-        @click="emit('openTray', 'mine')"
-      >
-        Select Piece
-      </UButton>
-
-      <!-- Mobile: Hide tray button (browsing state) -->
-      <UButton
-        v-if="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
-        size="xl"
-        class="md:hidden"
-        variant="outline"
-        @click="emit('closeTray')"
-      >
-        Hide
-      </UButton>
-
-      <!-- Mobile: View Pieces button (watching/finished state) -->
-      <UButton
-        v-if="derivedUIState === 'opponent_turn' || derivedUIState === 'game_over'"
-        class="md:hidden"
-        variant="outline"
-        size="xl"
-        @click="emit('openTray', 'mine')"
-      >
-        View Pieces
-      </UButton>
 
       <!-- Desktop: Selected piece controls (hidden on mobile when placing) -->
       <template v-if="selectedPieceId !== null">
@@ -121,16 +87,6 @@ const emit = defineEmits<{
           </UButton>
         </template>
 
-        <!-- Change piece button (tablet only, hidden on mobile and lg+) -->
-        <UButton
-          v-if="!previewCells && interactionType === 'placing'"
-          variant="ghost"
-          size="xl"
-          class="hidden md:inline-flex lg:hidden"
-          @click="emit('changePiece')"
-        >
-          Change
-        </UButton>
         <UButton
           v-if="!previewCells"
           variant="ghost"

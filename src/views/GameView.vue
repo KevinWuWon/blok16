@@ -16,8 +16,7 @@ import WaitingScreen from "@/components/WaitingScreen.vue";
 import PlayerTurnIndicator from "@/components/PlayerTurnIndicator.vue";
 import GameResult from "@/components/GameResult.vue";
 import PieceSidebar from "@/components/PieceSidebar.vue";
-import PieceTabs from "@/components/PieceTabs.vue";
-import MobilePlacementControls from "@/components/MobilePlacementControls.vue";
+import MobileGameFooter from "@/components/MobileGameFooter.vue";
 import GameControlsFooter from "@/components/GameControlsFooter.vue";
 import { useGameRole } from "@/composables/useGameRole";
 import { useGameState } from "@/composables/useGameState";
@@ -82,11 +81,9 @@ const {
   previewCells,
   allValidPlacements,
   currentPlacementIndex,
-  openTray,
-  closeTray,
+  activeTab,
   switchTab,
   selectPiece,
-  changePiece,
   clearSelection,
   rotatePiece,
   flipPieceAction,
@@ -352,14 +349,10 @@ const isGameOver = computed(() => game.value?.status === "finished");
 
           <!-- Board area -->
           <main
-            class="flex flex-col items-center p-4 overflow-hidden"
-            :class="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing' ? 'justify-start pt-2' : 'justify-center'"
+            class="flex flex-col items-center p-4 overflow-hidden justify-center"
           >
-            <!-- Game status / Turn indicator (hidden on mobile when piece tray is open during active game) -->
-            <div
-              class="mb-4"
-              :class="{ 'hidden md:block': derivedUIState === 'browsing' }"
-            >
+            <!-- Game status / Turn indicator -->
+            <div class="mb-4">
               <template v-if="game.status === 'finished'">
                 <GameResult
                   :winner="game.winner!"
@@ -397,49 +390,40 @@ const isGameOver = computed(() => game.value?.status === "finished");
                 "
                 :show-anchors="isMyTurn && selectedPieceId !== null"
                 :is-dragging="isDragging"
-                :compact="derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing'"
+                :compact="false"
                 :last-placement-cells="(game.lastPlacement as [number, number][])"
                 @cell-click="handleBoardClick"
                 @drag-start="startDrag"
               />
             </div>
-
-            <!-- Mobile: Inline piece tray (browsing state) -->
-            <PieceTabs
-              v-if="(derivedUIState === 'browsing' || derivedUIState === 'game_over_browsing') && interaction.type === 'browsing'"
-              class="md:hidden"
-              :my-pieces="myPieces"
-              :opponent-pieces="opponentPieces"
-              :my-color="myColor || 'blue'"
-              :opponent-color="myColor === 'blue' ? 'orange' : 'blue'"
-              :selected-piece-id="selectedPieceId"
-              :is-my-turn="isMyTurn"
-              :board="(game.board as Board)"
-              :current-tab="interaction.tab"
-              :opponent-name="opponentName"
-              :my-remaining-cells="myRemainingCells"
-              :opponent-remaining-cells="opponentRemainingCells"
-              :show-cell-count="isGameOver"
-              @switch-tab="switchTab"
-              @select="selectPiece"
-            />
-
-            <!-- Mobile: Placement controls (placing state) -->
-            <MobilePlacementControls
-              v-if="derivedUIState === 'placing'"
-              class="md:hidden"
-              :selected-piece-id="selectedPieceId!"
-              :player-color="myColor || 'blue'"
-              :current-orientation-index="currentOrientationIndex"
-              :all-valid-placements="allValidPlacements"
-              :current-placement-index="currentPlacementIndex"
-              @change-piece="changePiece"
-              @rotate="rotatePiece"
-              @flip="flipPieceAction"
-              @confirm="confirmPlacement"
-              @placement-index-change="setPlacementByIndex"
-            />
           </main>
+
+          <!-- Mobile footer with always-visible tray -->
+          <MobileGameFooter
+            v-if="game.status === 'playing' || game.status === 'finished'"
+            :my-pieces="myPieces"
+            :opponent-pieces="opponentPieces"
+            :my-color="myColor || 'blue'"
+            :opponent-color="myColor === 'blue' ? 'orange' : 'blue'"
+            :selected-piece-id="selectedPieceId"
+            :is-my-turn="isMyTurn"
+            :board="(game.board as Board)"
+            :active-tab="activeTab"
+            :opponent-name="opponentName"
+            :my-remaining-cells="myRemainingCells"
+            :opponent-remaining-cells="opponentRemainingCells"
+            :show-cell-count="isGameOver"
+            :current-orientation-index="currentOrientationIndex"
+            :all-valid-placements="allValidPlacements"
+            :current-placement-index="currentPlacementIndex"
+            :preview-cells="previewCells"
+            :can-pass="canPass"
+            @switch-tab="switchTab"
+            @select="selectPiece"
+            @placement-index-change="setPlacementByIndex"
+            @confirm="confirmPlacement"
+            @pass="passTurnAction"
+          />
 
           <!-- Desktop: Right sidebar - Opponent pieces (visible at lg+ only) -->
           <PieceSidebar
@@ -465,13 +449,10 @@ const isGameOver = computed(() => game.value?.status === "finished");
           :preview-cells="previewCells"
           :can-pass="canPass"
           :interaction-type="interaction.type"
-          @open-tray="openTray"
-          @close-tray="closeTray"
           @rotate="rotatePiece"
           @flip="flipPieceAction"
           @confirm="confirmPlacement"
           @deselect="clearSelection"
-          @change-piece="changePiece"
           @pass="passTurnAction"
           @clear-preview="updatePreview(null)"
         />
