@@ -22,6 +22,7 @@ declare module 'vue' {
     PieceSidebar: typeof import('./src/components/PieceSidebar.vue')['default']
     PieceTray: typeof import('./src/components/PieceTray.vue')['default']
     PlacementThumbwheel: typeof import('./src/components/PlacementThumbwheel.vue')['default']
+    PlayerTurnBadge: typeof import('./src/components/PlayerTurnBadge.vue')['default']
     PlayerTurnIndicator: typeof import('./src/components/PlayerTurnIndicator.vue')['default']
     RematchPanel: typeof import('./src/components/RematchPanel.vue')['default']
     ResponsiveDialog: typeof import('./src/components/ResponsiveDialog.vue')['default']
