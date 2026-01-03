@@ -349,7 +349,7 @@ const isGameOver = computed(() => game.value?.status === "finished");
 
           <!-- Board area -->
           <main
-            class="flex flex-col items-center py-2 px-4 overflow-hidden justify-center shrink-0"
+            class="flex flex-col items-center py-2 px-4 overflow-hidden justify-center shrink-0 items-stretch"
           >
             <!-- Game status / Turn indicator -->
             <div class="mb-2">
