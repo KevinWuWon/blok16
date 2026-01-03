@@ -105,7 +105,7 @@ const emit = defineEmits<{
     >
       <!-- Thumbwheel -->
       <div
-        class="flex-1 min-h-0 relative"
+        class="flex-1 min-h-0 relative my-2 mx-1"
         :class="{ invisible: selectedPieceId === null }"
       >
         <PlacementThumbwheel
