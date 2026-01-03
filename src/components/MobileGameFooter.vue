@@ -98,11 +98,14 @@ const emit = defineEmits<{
       </div>
 
       <!-- Right side: Wheel and button column -->
-      <div class="w-12 flex flex-col border-l border-default">
+      <div
+        v-if="isMyTurn"
+        class="w-12 flex flex-col border-l border-default"
+      >
         <!-- Thumbwheel -->
         <div
-          v-if="selectedPieceId !== null"
           class="flex-1 min-h-0"
+          :class="{ invisible: selectedPieceId === null }"
         >
           <PlacementThumbwheel
             :placements="allValidPlacements"
