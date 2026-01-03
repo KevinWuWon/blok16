@@ -103,18 +103,6 @@ const emit = defineEmits<{
       v-if="isMyTurn"
       class="w-12 flex flex-col border-l border-default"
     >
-      <!-- Thumbwheel -->
-      <div
-        class="flex-1 min-h-0 relative my-2 mx-1"
-        :class="{ invisible: selectedPieceId === null }"
-      >
-        <PlacementThumbwheel
-          :placements="allValidPlacements"
-          :current-index="currentPlacementIndex"
-          @update:current-index="emit('placementIndexChange', $event)"
-        />
-      </div>
-
       <!-- Confirm/Pass button -->
       <div class="shrink-0 p-1">
         <UButton
@@ -133,6 +121,18 @@ const emit = defineEmits<{
           :disabled="!previewCells"
           class="w-full"
           @click="emit('confirm')"
+        />
+      </div>
+
+      <!-- Thumbwheel -->
+      <div
+        class="flex-1 min-h-0 relative my-2 mx-1"
+        :class="{ invisible: selectedPieceId === null }"
+      >
+        <PlacementThumbwheel
+          :placements="allValidPlacements"
+          :current-index="currentPlacementIndex"
+          @update:current-index="emit('placementIndexChange', $event)"
         />
       </div>
     </div>
