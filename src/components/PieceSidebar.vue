@@ -9,8 +9,8 @@ defineProps<{
   selectedPieceId: number | null;
   disabled: boolean;
   board: Board;
-  hasNoMoves: boolean;
   remainingCells: number;
+  showCellCount: boolean;
   side: "left" | "right";
 }>();
 
@@ -31,7 +31,7 @@ const emit = defineEmits<{
     >
       <span>{{ title }}</span>
       <span
-        v-if="hasNoMoves"
+        v-if="showCellCount"
         class="text-muted font-normal"
       >{{ remainingCells }} cells</span>
     </h3>

@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useConvexMutation } from "convex-vue";
 import { api } from "../../convex/_generated/api";
-import { hasValidMoves, type Board } from "../../lib/validation";
+import { type Board } from "../../lib/validation";
 import { PIECES } from "../../convex/shared/pieces";
 import BoardComponent from "@/components/Board.vue";
 import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
@@ -228,18 +228,7 @@ function countRemainingCells(pieceIds: number[]): number {
 }
 const myRemainingCells = computed(() => countRemainingCells(myPieces.value));
 const opponentRemainingCells = computed(() => countRemainingCells(opponentPieces.value));
-
-// Check if player has no legal moves (canPass is true when no moves available)
-const myHasNoMoves = computed(() => canPass.value);
-const opponentHasNoMoves = computed(() => {
-  if (!game.value || !myColor.value) return false;
-  const opponentColor = myColor.value === "blue" ? "orange" : "blue";
-  return !hasValidMoves(
-    game.value.board as Board,
-    opponentPieces.value,
-    opponentColor,
-  );
-});
+const isGameOver = computed(() => game.value?.status === "finished");
 </script>
 
 <template>
@@ -304,8 +293,8 @@ const opponentHasNoMoves = computed(() => {
             :selected-piece-id="selectedPieceId"
             :disabled="!isMyTurn"
             :board="(game.board as Board)"
-            :has-no-moves="myHasNoMoves"
             :remaining-cells="myRemainingCells"
+            :show-cell-count="isGameOver"
             side="left"
             @select="selectPiece"
           />
@@ -377,10 +366,9 @@ const opponentHasNoMoves = computed(() => {
               :board="(game.board as Board)"
               :current-tab="interaction.tab"
               :opponent-name="opponentName"
-              :my-has-no-moves="myHasNoMoves"
-              :opponent-has-no-moves="opponentHasNoMoves"
               :my-remaining-cells="myRemainingCells"
               :opponent-remaining-cells="opponentRemainingCells"
+              :show-cell-count="isGameOver"
               @switch-tab="switchTab"
               @select="selectPiece"
             />
@@ -410,8 +398,8 @@ const opponentHasNoMoves = computed(() => {
             :selected-piece-id="null"
             :disabled="true"
             :board="(game.board as Board)"
-            :has-no-moves="opponentHasNoMoves"
             :remaining-cells="opponentRemainingCells"
+            :show-cell-count="isGameOver"
             side="right"
             @select="() => {}"
           />

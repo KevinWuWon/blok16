@@ -12,10 +12,9 @@ defineProps<{
   board: Board;
   currentTab: "mine" | "opponent";
   opponentName: string;
-  myHasNoMoves: boolean;
-  opponentHasNoMoves: boolean;
   myRemainingCells: number;
   opponentRemainingCells: number;
+  showCellCount: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -38,7 +37,7 @@ const emit = defineEmits<{
         @click="emit('switchTab', 'mine')"
       >
         Mine<span
-          v-if="myHasNoMoves"
+          v-if="showCellCount"
           class="text-muted font-normal"
         > ({{ myRemainingCells }})</span>
       </button>
@@ -52,7 +51,7 @@ const emit = defineEmits<{
         @click="emit('switchTab', 'opponent')"
       >
         {{ opponentName }}<span
-          v-if="opponentHasNoMoves"
+          v-if="showCellCount"
           class="text-muted font-normal"
         > ({{ opponentRemainingCells }})</span>
       </button>
