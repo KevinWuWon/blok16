@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
-import { useConvexQuery } from "convex-vue";
-import { api } from "../../convex/_generated/api";
+import { ref, computed } from "vue";
 import { useNotifications } from "@/composables/useNotifications";
+
+type NotificationStatus =
+  | "unsupported"
+  | "denied"
+  | "not-setup"
+  | "not-registered"
+  | "working";
 
 const props = defineProps<{
   open: boolean;
   playerId: string;
   gameCode: string;
+  status: NotificationStatus;
 }>();
 
 const emit = defineEmits<{
@@ -16,60 +22,12 @@ const emit = defineEmits<{
 }>();
 
 const {
-  permission,
-  isPushSupported,
-  isSupported,
-  getCurrentEndpoint,
   subscribeToPush,
-  updatePermissionState,
 } = useNotifications();
 
-const currentEndpoint = ref<string | null>(null);
 const isLoading = ref(false);
 const isPlayerReady = computed(() => props.playerId.trim().length > 0);
-
-// Query backend for endpoint registration - uses sentinel when no endpoint
-const { data: isDeviceRegistered } = useConvexQuery(
-  api.push.hasSubscriptionForEndpoint,
-  () => ({
-    endpoint: currentEndpoint.value || "__none__",
-    playerId: isPlayerReady.value ? props.playerId : undefined,
-  })
-);
-
-// Only trust the result when we have a real endpoint
-const isRegisteredOnServer = computed(() => {
-  if (!currentEndpoint.value) return false;
-  return isDeviceRegistered.value === true;
-});
-
-// Refresh endpoint when dialog opens
-watch(
-  () => props.open,
-  async (isOpen) => {
-    if (isOpen) {
-      updatePermissionState();
-      currentEndpoint.value = await getCurrentEndpoint();
-    }
-  }
-);
-
-onMounted(async () => {
-  if (props.open) {
-    currentEndpoint.value = await getCurrentEndpoint();
-  }
-});
-
-// Computed status
-type Status = "unsupported" | "denied" | "not-setup" | "not-registered" | "working";
-
-const status = computed<Status>(() => {
-  if (!isSupported || !isPushSupported) return "unsupported";
-  if (permission.value === "denied") return "denied";
-  if (permission.value !== "granted") return "not-setup";
-  if (!isRegisteredOnServer.value) return "not-registered";
-  return "working";
-});
+const status = computed(() => props.status);
 
 const statusConfig = computed(() => {
   switch (status.value) {
@@ -121,7 +79,7 @@ const statusConfig = computed(() => {
   }
 });
 
-const showPushWarning = computed(() => !isPushSupported);
+const showPushWarning = computed(() => status.value === "unsupported");
 
 async function handleAction() {
   if (!isPlayerReady.value) {
@@ -132,10 +90,7 @@ async function handleAction() {
     const subscription = await subscribeToPush();
     if (subscription) {
       emit("subscribe", subscription);
-      // Refresh endpoint after subscribing
-      currentEndpoint.value = await getCurrentEndpoint();
     }
-    updatePermissionState();
   } finally {
     isLoading.value = false;
   }

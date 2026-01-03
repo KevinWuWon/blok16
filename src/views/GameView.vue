@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { useConvexMutation } from "convex-vue";
+import { useConvexMutation, useConvexQuery } from "convex-vue";
 import { api } from "../../convex/_generated/api";
 import { type Board } from "../../lib/validation";
 import { PIECES } from "../../convex/shared/pieces";
@@ -162,6 +162,7 @@ const {
   isPushSupported,
   getExistingSubscription,
   storePlayerInfoForServiceWorker,
+  updatePermissionState,
 } = useNotifications();
 
 // Get Convex URL for service worker subscription refresh
@@ -171,13 +172,43 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
 const notificationDialogOpen = ref(false);
 const helpDialogOpen = ref(false);
 
-// Bell icon based on permission state
-const bellIcon = computed(() => {
-  if (!notificationsSupported || !isPushSupported) return "i-lucide-bell-off";
-  if (notificationPermission.value === "denied") return "i-lucide-bell-off";
-  if (notificationPermission.value === "granted") return "i-lucide-bell-ring";
-  return "i-lucide-bell";
+const currentEndpoint = ref<string | null>(null);
+const isPlayerReady = computed(() => playerId.value.trim().length > 0);
+
+// Query backend for endpoint registration - uses sentinel when no endpoint
+const { data: isDeviceRegistered } = useConvexQuery(
+  api.push.hasSubscriptionForEndpoint,
+  () => ({
+    endpoint: currentEndpoint.value || "__none__",
+    playerId: isPlayerReady.value ? playerId.value : undefined,
+  })
+);
+
+const isRegisteredOnServer = computed(() => {
+  if (!currentEndpoint.value) return false;
+  return isDeviceRegistered.value === true;
 });
+
+type NotificationStatus =
+  | "unsupported"
+  | "denied"
+  | "not-setup"
+  | "not-registered"
+  | "working";
+
+const notificationStatus = computed<NotificationStatus>(() => {
+  if (!notificationsSupported || !isPushSupported) return "unsupported";
+  if (notificationPermission.value === "denied") return "denied";
+  if (notificationPermission.value !== "granted") return "not-setup";
+  if (!isRegisteredOnServer.value) return "not-registered";
+  return "working";
+});
+
+const bellIcon = computed(() =>
+  notificationStatus.value === "working"
+    ? "i-lucide-bell-ring"
+    : "i-lucide-bell-off"
+);
 
 async function handleNotificationSubscribe(subscription: PushSubscription) {
   if (playerId.value) {
@@ -191,22 +222,36 @@ async function handleNotificationSubscribe(subscription: PushSubscription) {
       });
       // Store player info in service worker for subscription refresh handling
       storePlayerInfoForServiceWorker(playerId.value, convexUrl);
+      lastSubscriptionSyncKey.value = `${playerId.value}:${code.value}`;
+      void refreshNotificationStatus();
     }
   }
 }
 
 const lastSubscriptionSyncKey = ref<string>("");
 
-async function syncExistingSubscription() {
-  if (!isPushSupported || !playerId.value) return;
-  const syncKey = `${playerId.value}:${code.value}`;
-  if (lastSubscriptionSyncKey.value === syncKey) return;
+let notificationRefreshToken = 0;
+
+async function refreshNotificationStatus() {
+  const token = ++notificationRefreshToken;
+  updatePermissionState();
+
+  if (!isPushSupported) {
+    if (token === notificationRefreshToken) {
+      currentEndpoint.value = null;
+    }
+    return;
+  }
 
   const existingSub = await getExistingSubscription();
-  if (!existingSub) return;
+  if (token !== notificationRefreshToken) return;
 
-  const subData = getSubscriptionData(existingSub);
-  if (!subData) return;
+  currentEndpoint.value = existingSub?.endpoint ?? null;
+
+  if (!existingSub || !playerId.value) return;
+
+  const syncKey = `${playerId.value}:${code.value}`;
+  if (lastSubscriptionSyncKey.value === syncKey) return;
 
   await pushUpdateGameCodeMutation.mutate({
     playerId: playerId.value,
@@ -219,8 +264,14 @@ async function syncExistingSubscription() {
 }
 
 watch([playerId, code], () => {
-  void syncExistingSubscription();
+  void refreshNotificationStatus();
 }, { immediate: true });
+
+watch(notificationDialogOpen, (isOpen) => {
+  if (isOpen) {
+    void refreshNotificationStatus();
+  }
+});
 
 // Calculate remaining cells for each player
 function countRemainingCells(pieceIds: number[]): number {
@@ -449,6 +500,7 @@ const isGameOver = computed(() => game.value?.status === "finished");
         :open="notificationDialogOpen"
         :player-id="playerId"
         :game-code="code"
+        :status="notificationStatus"
         @update:open="notificationDialogOpen = $event"
         @subscribe="handleNotificationSubscribe"
       />
