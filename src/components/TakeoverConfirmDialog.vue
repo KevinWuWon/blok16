@@ -16,17 +16,19 @@ function handleConfirm() {
   emit('update:open', false)
 }
 
-function handleCancel() {
-  emit('cancel')
-  emit('update:open', false)
+function handleOpenChange(value: boolean) {
+  emit('update:open', value)
+  if (!value) {
+    emit('cancel')
+  }
 }
 </script>
 
 <template>
-  <UModal
+  <ResponsiveDialog
     :open="open"
     title="Take Over Role?"
-    @update:open="handleCancel"
+    @update:open="handleOpenChange"
   >
     <template #body>
       <p class="text-sm">
@@ -47,7 +49,7 @@ function handleCancel() {
         <UButton
           size="xl"
           variant="ghost"
-          @click="handleCancel"
+          @click="handleOpenChange(false)"
         >
           Cancel
         </UButton>
@@ -60,5 +62,5 @@ function handleCancel() {
         </UButton>
       </div>
     </template>
-  </UModal>
+  </ResponsiveDialog>
 </template>

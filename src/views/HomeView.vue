@@ -174,9 +174,10 @@ function joinGame() {
     </div>
 
     <!-- Create Game Dialog -->
-    <UModal
-      v-model:open="showCreateDialog"
+    <ResponsiveDialog
+      :open="showCreateDialog"
       title="Create New Game"
+      @update:open="showCreateDialog = $event"
     >
       <template #body>
         <div class="space-y-4">
@@ -238,12 +239,13 @@ function joinGame() {
           </UButton>
         </div>
       </template>
-    </UModal>
+    </ResponsiveDialog>
 
     <!-- Join Game Dialog -->
-    <UModal
-      v-model:open="showJoinDialog"
+    <ResponsiveDialog
+      :open="showJoinDialog"
       title="Join Game"
+      @update:open="showJoinDialog = $event"
     >
       <template #body>
         <div class="space-y-4">
@@ -283,6 +285,6 @@ function joinGame() {
           </UButton>
         </div>
       </template>
-    </UModal>
+    </ResponsiveDialog>
   </div>
 </template>

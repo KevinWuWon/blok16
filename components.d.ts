@@ -25,6 +25,7 @@ declare module 'vue' {
     PlacementThumbwheel: typeof import('./src/components/PlacementThumbwheel.vue')['default']
     PlayerTurnIndicator: typeof import('./src/components/PlayerTurnIndicator.vue')['default']
     RematchPanel: typeof import('./src/components/RematchPanel.vue')['default']
+    ResponsiveDialog: typeof import('./src/components/ResponsiveDialog.vue')['default']
     RoleSelectionDialog: typeof import('./src/components/RoleSelectionDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

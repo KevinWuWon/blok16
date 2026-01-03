@@ -50,20 +50,23 @@ function goBack() {
   selectedRole.value = null
 }
 
-function handleClose() {
-  emit('update:open', false)
-  // Reset state
-  step.value = 'role'
-  selectedRole.value = null
-  playerName.value = ''
+function handleOpenChange(value: boolean) {
+  emit('update:open', value)
+  if (!value) {
+    // Reset state on close
+    step.value = 'role'
+    selectedRole.value = null
+    playerName.value = ''
+  }
 }
 </script>
 
 <template>
-  <UModal
+  <ResponsiveDialog
     :open="open"
     title="Join Game"
-    @update:open="handleClose"
+    :dismissible="false"
+    @update:open="handleOpenChange"
   >
     <template #body>
       <!-- Role Selection Step -->
@@ -186,5 +189,5 @@ function handleClose() {
         </UButton>
       </div>
     </template>
-  </UModal>
+  </ResponsiveDialog>
 </template>

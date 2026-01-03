@@ -141,16 +141,16 @@ async function handleAction() {
   }
 }
 
-function handleClose() {
-  emit("update:open", false);
+function handleOpenChange(value: boolean) {
+  emit("update:open", value);
 }
 </script>
 
 <template>
-  <UModal
+  <ResponsiveDialog
     :open="open"
     title="Notifications"
-    @update:open="handleClose"
+    @update:open="handleOpenChange"
   >
     <template #body>
       <div class="flex flex-col items-center text-center py-4 space-y-4">
@@ -221,11 +221,11 @@ function handleClose() {
           v-if="status === 'working'"
           size="xl"
           variant="outline"
-          @click="handleClose"
+          @click="handleOpenChange(false)"
         >
           Done
         </UButton>
       </div>
     </template>
-  </UModal>
+  </ResponsiveDialog>
 </template>
