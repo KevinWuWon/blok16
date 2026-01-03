@@ -1,10 +1,10 @@
-# Blokus Duo
+# Blokli
 
-A two-player Blokus Duo web game built with Nuxt 3, Nuxt UI, and Convex.
+A two-player Blokli web game built with Nuxt 3, Nuxt UI, and Convex.
 
 ## Features
 
-- **Blokus Duo variant**: 14×14 board with 21 pieces per player
+- **Blokli**: 14×14 board with 21 pieces per player
 - **Online multiplayer**: Play with a friend via shareable link
 - **No authentication**: Just create a game and share the link
 - **Real-time updates**: Powered by Convex's reactive database

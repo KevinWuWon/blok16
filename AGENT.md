@@ -18,7 +18,7 @@ npx convex typecheck  # Typecheck Convex functions only
 
 ## Architecture
 
-This is a two-player Blokus Duo game with Vite + Vue 3 frontend and Convex backend.
+This is a two-player Blokli game with Vite + Vue 3 frontend and Convex backend.
 
 ### Frontend (src/)
 - **views/HomeView.vue**: Home page with "Create Game" button, shows active games
@@ -48,7 +48,7 @@ Game logic is extracted into focused composables:
 - **push.ts / pushActions.ts**: Push notification subscription and delivery
 - **http.ts**: HTTP endpoints for push notification callbacks
 - **shared/**: Single source of truth for game logic (used by both client and server)
-  - **pieces.ts**: 21 Blokus piece definitions with rotation/flip transforms
+  - **pieces.ts**: 21 piece definitions with rotation/flip transforms
   - **validation.ts**: Placement validation, corner anchor detection, valid move checking
 
 ### Client Wrappers (lib/)
@@ -62,7 +62,7 @@ Game logic is extracted into focused composables:
 4. Real-time sync via convex-vue's reactive queries
 5. Push notifications alert players when it's their turn
 
-### Game Rules (14×14 Blokus Duo)
+### Game Rules (14×14 Blokli)
 - Starting positions: blue (4,4), orange (9,9) - 0-indexed
 - First move must cover starting position
 - Subsequent pieces must touch own piece diagonally, never orthogonally

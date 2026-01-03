@@ -364,7 +364,7 @@ export const placePiece = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           nextPlayerId,
-          "Blokus Duo",
+          "Blokli",
           "It's your turn!",
           args.code,
           "your-turn"
@@ -380,7 +380,7 @@ export const placePiece = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           bluePlayerId,
-          "Blokus Duo - Game Over",
+          "Blokli - Game Over",
           message,
           args.code,
           "game-end"
@@ -391,7 +391,7 @@ export const placePiece = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           orangePlayerId,
-          "Blokus Duo - Game Over",
+          "Blokli - Game Over",
           message,
           args.code,
           "game-end"
@@ -462,7 +462,7 @@ export const passTurn = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           bluePlayerId,
-          "Blokus Duo - Game Over",
+          "Blokli - Game Over",
           message,
           args.code,
           "game-end"
@@ -473,7 +473,7 @@ export const passTurn = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           orangePlayerId,
-          "Blokus Duo - Game Over",
+          "Blokli - Game Over",
           message,
           args.code,
           "game-end"
@@ -492,7 +492,7 @@ export const passTurn = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           nextPlayerId,
-          "Blokus Duo",
+          "Blokli",
           "It's your turn!",
           args.code,
           "your-turn"
@@ -586,7 +586,7 @@ export const requestRematch = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           bluePlayerId,
-          "Blokus Duo",
+          "Blokli",
           "Rematch is starting!",
           newCode,
           "rematch-starting"
@@ -596,7 +596,7 @@ export const requestRematch = mutation({
         await schedulePushNotification(
           ctx.scheduler,
           orangePlayerId,
-          "Blokus Duo",
+          "Blokli",
           "Rematch is starting!",
           newCode,
           "rematch-starting"

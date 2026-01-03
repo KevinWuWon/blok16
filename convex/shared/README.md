@@ -1,6 +1,6 @@
 # Shared Validation & Piece Logic
 
-This directory contains the **single source of truth** for all Blokus game logic, including piece definitions and placement validation rules.
+This directory contains the **single source of truth** for all Blokli game logic, including piece definitions and placement validation rules.
 
 ## Problem Solved
 
@@ -46,7 +46,7 @@ convex/
 ## Files
 
 ### convex/shared/pieces.ts
-- `PIECES` array (all 21 Blokus pieces)
+- `PIECES` array (all 21 pieces)
 - `normalize()`, `rotateCW()`, `rotateCCW()`, `flipH()`
 - `getAllOrientations()`, `translateCells()`, `getBoundingBox()`
 

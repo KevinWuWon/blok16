@@ -43,7 +43,7 @@ export const sendPushNotification = action({
       body: args.body,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      tag: args.tag || "blokus-notification",
+      tag: args.tag || "blokli-notification",
       data: {
         gameCode: args.gameCode,
       },

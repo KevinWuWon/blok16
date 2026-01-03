@@ -1,7 +1,7 @@
-// Service Worker for Blokus Duo - Push Notifications
+// Service Worker for Blokli - Push Notifications
 
 // IndexedDB helper for storing player info
-const DB_NAME = 'blokus-push';
+const DB_NAME = 'blokli-push';
 const STORE_NAME = 'config';
 
 function openDB() {
@@ -83,11 +83,11 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push received:', event);
 
   let data = {
-    title: 'Blokus Duo',
+    title: 'Blokli',
     body: "It's your turn!",
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: 'blokus-turn',
+    tag: 'blokli-turn',
     data: {}
   };
 
@@ -104,7 +104,7 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || '/icon-192.png',
     badge: data.badge || '/icon-192.png',
-    tag: data.tag || 'blokus-notification',
+    tag: data.tag || 'blokli-notification',
     requireInteraction: true,
     data: data.data || {}
   };

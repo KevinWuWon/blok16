@@ -1,7 +1,7 @@
 {
-  "name": "Blokus Duo",
-  "short_name": "Blokus",
-  "description": "Play Blokus Duo online with a friend",
+  "name": "Blokli",
+  "short_name": "Blokli",
+  "description": "Play Blokli online with a friend",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

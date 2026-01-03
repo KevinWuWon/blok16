@@ -1,6 +1,6 @@
 import { get, set, del } from 'idb-keyval'
 
-const DB_PREFIX = 'blokus-'
+const DB_PREFIX = 'blokli-'
 
 export async function getStoredValue(key: string): Promise<string | null> {
   try {
@@ -38,7 +38,7 @@ export function getStoredValueSync(key: string): string | null {
 // Initialize: migrate any existing localStorage/cookie data to IndexedDB
 export async function initStorage(): Promise<void> {
   // Migrate player-id if it exists in localStorage
-  const playerId = localStorage.getItem('blokus-player-id')
+  const playerId = localStorage.getItem('blokli-player-id')
   if (playerId) {
     await setStoredValue('player-id', playerId)
   }

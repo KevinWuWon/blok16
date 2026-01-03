@@ -1,4 +1,4 @@
-// Shared validation logic for Blokus piece placement
+// Shared validation logic for Blokli piece placement
 // Used by both client-side (lib/validation.ts) and server-side (convex/games.ts)
 
 import { PIECES, getAllOrientations, translateCells } from "./pieces";

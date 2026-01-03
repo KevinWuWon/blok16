@@ -24,7 +24,7 @@ const emit = defineEmits<{
         to="/"
         class="text-lg font-bold"
       >
-        Blokus Duo
+        Blokli
       </RouterLink>
       <UBadge
         variant="subtle"

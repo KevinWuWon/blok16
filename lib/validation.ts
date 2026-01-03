@@ -1,4 +1,4 @@
-// Client-side validation logic for Blokus piece placement
+// Client-side validation logic for Blokli piece placement
 // Core validation logic is re-exported from convex/shared/validation.ts
 // This file adds client-specific functionality like piece rotation/flipping during preview
 
