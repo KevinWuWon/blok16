@@ -13,13 +13,13 @@ import type { Doc } from "../../convex/_generated/dataModel";
 // Interaction FSM state types
 type PreviewData = { anchor: [number, number]; cells: [number, number][] };
 type InteractionState =
-  | { type: "idle" }
-  | { type: "browsing"; tab: "mine" | "opponent" }
+  | { type: "idle"; tab: "mine" | "opponent" }
   | {
       type: "placing";
       pieceId: number;
       orientation: number;
       preview: PreviewData | null;
+      tab: "mine" | "opponent";
     };
 
 export function useGameInteraction(
@@ -29,7 +29,7 @@ export function useGameInteraction(
   isMyTurn: Ref<boolean>,
   isDragging?: Ref<boolean>,
 ) {
-  const interaction = ref<InteractionState>({ type: "idle" });
+  const interaction = ref<InteractionState>({ type: "idle", tab: "mine" });
 
   // Derived values for backward compatibility
   const selectedPieceId = computed(() =>
@@ -60,19 +60,12 @@ export function useGameInteraction(
   // Current placement index (for thumbwheel sync)
   const currentPlacementIndex = ref(0);
 
+  // Computed for active tab
+  const activeTab = computed(() => interaction.value.tab);
+
   // FSM transition functions
-  function openTray(tab: "mine" | "opponent" = "mine") {
-    interaction.value = { type: "browsing", tab };
-  }
-
-  function closeTray() {
-    interaction.value = { type: "idle" };
-  }
-
   function switchTab(tab: "mine" | "opponent") {
-    if (interaction.value.type === "browsing") {
-      interaction.value = { ...interaction.value, tab };
-    }
+    interaction.value = { ...interaction.value, tab };
   }
 
   function selectPiece(pieceId: number) {
@@ -83,16 +76,12 @@ export function useGameInteraction(
       pieceId,
       orientation: 0,
       preview: null,
+      tab: interaction.value.tab,
     };
   }
 
-  function changePiece() {
-    // Go back to browsing (tray opens, piece highlighted)
-    interaction.value = { type: "browsing", tab: "mine" };
-  }
-
   function clearSelection() {
-    interaction.value = { type: "idle" };
+    interaction.value = { type: "idle", tab: interaction.value.tab };
   }
 
   // Rotation and flip logic
@@ -221,8 +210,6 @@ export function useGameInteraction(
           } else {
             clearSelection();
           }
-        } else if (interaction.value.type === "browsing") {
-          closeTray();
         }
       }
     };
@@ -268,7 +255,7 @@ export function useGameInteraction(
   // Watch for turn changes - reset placing state when turn ends
   watch(isMyTurn, (myTurn, wasMyTurn) => {
     if (wasMyTurn && !myTurn && interaction.value.type === "placing") {
-      interaction.value = { type: "idle" };
+      interaction.value = { type: "idle", tab: interaction.value.tab };
     }
   });
 
@@ -280,13 +267,11 @@ export function useGameInteraction(
     previewCells,
     allValidPlacements,
     currentPlacementIndex,
+    activeTab,
 
     // Actions
-    openTray,
-    closeTray,
     switchTab,
     selectPiece,
-    changePiece,
     clearSelection,
     rotatePiece,
     flipPieceAction,

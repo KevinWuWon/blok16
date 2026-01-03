@@ -16,8 +16,7 @@ const emit = defineEmits<{
 
 <template>
   <header
-    class="items-center justify-between px-4 py-2 border-b border-default shrink-0"
-    :class="derivedUIState === 'browsing' ? 'hidden md:flex' : 'flex'"
+    class="flex items-center justify-between px-4 py-2 border-b border-default shrink-0"
   >
     <div class="flex items-center gap-2">
       <RouterLink

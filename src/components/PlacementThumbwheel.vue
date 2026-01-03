@@ -223,19 +223,19 @@ watch(
 
 <style scoped>
 .thumbwheel {
-  position: relative;
-  width: 48px;
-  height: 100%;
-  border-left: 1px solid rgba(128, 128, 128, 0.2);
-  border-right: 1px solid rgba(128, 128, 128, 0.2);
+  position: absolute;
+  inset: 0;
+  border-left: 1px solid oklch(0.71 0.18 153 / 0.25);
+  border-right: 1px solid oklch(0.71 0.18 153 / 0.25);
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 30%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.06) 70%,
-    rgba(0, 0, 0, 0.12) 100%
-  );
+    oklch(0.43 0.11 153 / 0.08) 0%,
+    oklch(0.87 0.22 153 / 0.04) 30%,
+    oklch(0.87 0.22 153 / 0.10) 50%,
+    oklch(0.87 0.22 153 / 0.12) 70%,
+    oklch(0.43 0.11 153 / 0.12) 100%
+  )
+  oklch(0.71 0.18 153 / 0.10);
 }
 
 .thumbwheel-gradient-top,
@@ -278,7 +278,7 @@ watch(
 
 .thumbwheel-tick {
   height: 16px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-bottom: 1px solid oklch(0.71 0.18 153 / 0.20);
   position: relative;
 }
 
@@ -290,7 +290,7 @@ watch(
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: rgba(128, 128, 128, 0.35);
+  background: oklch(0.71 0.18 153 / 0.45);
   transform: translate(-50%, -50%);
 }
 </style>

@@ -16,13 +16,11 @@ export type DerivedUIState =
   | "onboarding" // Onboarding not complete (role selection in progress)
   | "waiting_for_opponent" // Game created, waiting for player 2
   | "my_turn" // Active game, it's my turn, no piece selected
-  | "browsing" // Active game, viewing piece tray
   | "placing" // Active game, piece selected and positioning
   | "opponent_turn" // Active game, waiting for opponent to move
-  | "game_over" // Game ended, not browsing pieces
-  | "game_over_browsing"; // Game ended, viewing pieces
+  | "game_over"; // Game ended
 
-type InteractionType = "idle" | "browsing" | "placing";
+type InteractionType = "idle" | "placing";
 
 type ClaimColorMutation = {
   mutate: (args: {
@@ -64,16 +62,10 @@ export function useGameFlow(
     // Onboarding takes precedence
     if (onboardingState.value !== "ready") return "onboarding";
     if (game.value?.status === "waiting") return "waiting_for_opponent";
-
-    // Game over states
-    if (game.value?.status === "finished") {
-      if (interactionType.value === "browsing") return "game_over_browsing";
-      return "game_over";
-    }
+    if (game.value?.status === "finished") return "game_over";
 
     // Active game - client interaction state
     if (interactionType.value === "placing") return "placing";
-    if (interactionType.value === "browsing") return "browsing";
 
     // Default based on turn
     return isMyTurn.value ? "my_turn" : "opponent_turn";

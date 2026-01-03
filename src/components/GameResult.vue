@@ -8,21 +8,19 @@ defineProps<{
 </script>
 
 <template>
-  <div class="text-2xl font-bold text-center">
-    <span
-      v-if="winner === 'draw'"
-      class="text-muted"
-    >Draw!</span>
-    <span
-      v-else
-      :class="
-        winner === 'blue'
-          ? 'text-blue-500'
-          : 'text-orange-500'
-      "
-    >
-      {{ winner === myColor ? "You win!" : "You lose!" }}
-    </span>
+  <div class="text-2xl font-bold text-center flex justify-between items-center">
+    <div>
+      <span
+        v-if="winner === 'draw'"
+      >Draw!</span>
+      <span
+        v-else
+      >
+        {{ winner === myColor ? "You won!" : "You lost!" }}
+      </span>
+    </div>
+    <div>
+      <slot />
+    </div>
   </div>
-  <slot />
 </template>

@@ -66,53 +66,51 @@ async function requestRematch() {
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-3 mt-4">
-    <!-- Initial: Rematch button -->
+  <!-- Initial: Rematch button -->
+  <UButton
+    v-if="rematchState === 'initial'"
+    size="xl"
+    variant="outline"
+    :loading="isRequesting"
+    @click="requestRematch"
+  >
+    Rematch
+  </UButton>
+
+  <!-- Waiting: I requested -->
+  <div
+    v-else-if="rematchState === 'waiting'"
+    class="text-center"
+  >
     <UButton
-      v-if="rematchState === 'initial'"
       size="xl"
       variant="outline"
+      disabled
+    >
+      Waiting for opponent...
+    </UButton>
+  </div>
+
+  <!-- Invited: Opponent requested -->
+  <div
+    v-else-if="rematchState === 'invited'"
+    class="text-center"
+  >
+    <UButton
+      size="xl"
       :loading="isRequesting"
       @click="requestRematch"
     >
-      Rematch?
-    </UButton>
-
-    <!-- Waiting: I requested -->
-    <div
-      v-else-if="rematchState === 'waiting'"
-      class="text-center"
-    >
-      <UButton
-        size="xl"
-        variant="outline"
-        disabled
-      >
-        Waiting for opponent...
-      </UButton>
-    </div>
-
-    <!-- Invited: Opponent requested -->
-    <div
-      v-else-if="rematchState === 'invited'"
-      class="text-center"
-    >
-      <UButton
-        size="xl"
-        :loading="isRequesting"
-        @click="requestRematch"
-      >
-        Accept Rematch
-      </UButton>
-    </div>
-
-    <!-- Ready: New game created -->
-    <UButton
-      v-else-if="rematchState === 'ready'"
-      size="xl"
-      @click="navigateToNewGame"
-    >
-      Go to Rematch
+      Accept Rematch
     </UButton>
   </div>
+
+  <!-- Ready: New game created -->
+  <UButton
+    v-else-if="rematchState === 'ready'"
+    size="xl"
+    @click="navigateToNewGame"
+  >
+    Go to Rematch
+  </UButton>
 </template>
