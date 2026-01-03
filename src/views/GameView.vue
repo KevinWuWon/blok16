@@ -349,10 +349,10 @@ const isGameOver = computed(() => game.value?.status === "finished");
 
           <!-- Board area -->
           <main
-            class="flex flex-col items-center p-4 overflow-hidden justify-center"
+            class="flex flex-col items-center py-2 px-4 overflow-hidden justify-center shrink-0"
           >
             <!-- Game status / Turn indicator -->
-            <div class="mb-4">
+            <div class="mb-2">
               <template v-if="game.status === 'finished'">
                 <GameResult
                   :winner="game.winner!"
