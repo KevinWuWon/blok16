@@ -41,6 +41,7 @@ export function useGameFlow(
   role: Ref<GameRole | null>,
   isLoading: Ref<boolean>,
   isMyTurn: Ref<boolean>,
+  wasTakenOver: Ref<boolean>,
   interactionType: Ref<InteractionType>,
   gameRoleComposable: Ref<ReturnType<typeof useGameRole>>,
   claimColorMutation: ClaimColorMutation,
@@ -92,6 +93,13 @@ export function useGameFlow(
     },
     { immediate: true },
   );
+
+  // Auto-demote to spectator when taken over
+  watch(wasTakenOver, (isTakenOver) => {
+    if (isTakenOver && onboardingState.value === "ready") {
+      gameRoleComposable.value.setRole("spectator");
+    }
+  });
 
   // Handle role selection
   async function handleRoleSelect(
@@ -160,6 +168,10 @@ export function useGameFlow(
     onboardingState.value = "selecting";
   }
 
+  function openRoleSelection() {
+    onboardingState.value = "selecting";
+  }
+
   return {
     // State
     onboardingState,
@@ -171,5 +183,6 @@ export function useGameFlow(
     handleRoleSelect,
     handleTakeoverConfirm,
     handleTakeoverCancel,
+    openRoleSelection,
   };
 }

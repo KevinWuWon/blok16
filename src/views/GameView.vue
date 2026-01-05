@@ -62,6 +62,8 @@ const {
   game,
   isLoading,
   myColor,
+  isSpectator,
+  wasTakenOver,
   isMyTurn,
   myPieces,
   opponentPieces,
@@ -71,7 +73,7 @@ const {
   turnLabel,
   gameUrl,
   gameBoard,
-} = useGameState(code, role);
+} = useGameState(code, role, playerId);
 
 // Interaction composable (without isDragging initially)
 const {
@@ -103,11 +105,13 @@ const {
   handleRoleSelect,
   handleTakeoverConfirm,
   handleTakeoverCancel,
+  openRoleSelection,
 } = useGameFlow(
   game,
   role,
   isLoading,
   isMyTurn,
+  wasTakenOver,
   interactionType,
   gameRole,
   claimColorMutation,
@@ -318,8 +322,10 @@ const isGameOver = computed(() => game.value?.status === "finished");
         :notifications-supported="notificationsSupported"
         :bell-icon="bellIcon"
         :derived-u-i-state="derivedUIState"
+        :is-spectator="isSpectator"
         @help-click="helpDialogOpen = true"
         @notification-click="notificationDialogOpen = true"
+        @role-click="openRoleSelection"
       />
 
       <WaitingScreen

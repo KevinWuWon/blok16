@@ -6,11 +6,13 @@ defineProps<{
   notificationsSupported: boolean;
   bellIcon: string;
   derivedUIState: DerivedUIState;
+  isSpectator: boolean;
 }>();
 
 const emit = defineEmits<{
   helpClick: [];
   notificationClick: [];
+  roleClick: [];
 }>();
 </script>
 
@@ -33,6 +35,14 @@ const emit = defineEmits<{
       </UBadge>
     </div>
     <div class="flex items-center gap-2">
+      <UButton
+        v-if="isSpectator"
+        variant="ghost"
+        size="xl"
+        icon="i-lucide-user"
+        title="Change role"
+        @click="emit('roleClick')"
+      />
       <UButton
         variant="ghost"
         size="xl"

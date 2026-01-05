@@ -13,7 +13,14 @@ function getPlayerName(player?: Player): string | null {
   return player.name;
 }
 
-export function useGameState(code: Ref<string>, role: Ref<GameRole | null>) {
+// Helper to extract player ID from legacy or new format
+function getPlayerId(player?: Player): string | null {
+  if (!player) return null;
+  if (typeof player === "string") return player;
+  return player.id;
+}
+
+export function useGameState(code: Ref<string>, role: Ref<GameRole | null>, playerId: Ref<string>) {
   // Convex query for game state
   const { data: game, isPending: isLoading } = useConvexQuery(
     api.games.getGame,
@@ -31,8 +38,16 @@ export function useGameState(code: Ref<string>, role: Ref<GameRole | null>) {
 
   const isSpectator = computed(() => role.value === "spectator");
 
+  // Detect if player was taken over (their playerId no longer matches the color's player)
+  const wasTakenOver = computed(() => {
+    if (!game.value || !myColor.value || role.value === "spectator") return false;
+    const currentPlayerId = getPlayerId(game.value.players[myColor.value]);
+    // Only consider taken over if the slot is occupied by someone else
+    return currentPlayerId !== null && currentPlayerId !== playerId.value;
+  });
+
   const isMyTurn = computed(() => {
-    if (isSpectator.value) return false;
+    if (isSpectator.value || wasTakenOver.value) return false;
     return (
       game.value?.currentTurn === myColor.value &&
       game.value?.status === "playing"
@@ -87,6 +102,7 @@ export function useGameState(code: Ref<string>, role: Ref<GameRole | null>) {
     // Derived state
     myColor,
     isSpectator,
+    wasTakenOver,
     isMyTurn,
     myPieces,
     opponentPieces,
