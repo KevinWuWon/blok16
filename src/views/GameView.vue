@@ -67,6 +67,8 @@ const {
   isMyTurn,
   myPieces,
   opponentPieces,
+  bluePieces,
+  orangePieces,
   opponentName,
   blueDisplayName,
   orangeDisplayName,
@@ -280,6 +282,8 @@ function countRemainingCells(pieceIds: number[]): number {
 }
 const myRemainingCells = computed(() => countRemainingCells(myPieces.value));
 const opponentRemainingCells = computed(() => countRemainingCells(opponentPieces.value));
+const blueRemainingCells = computed(() => countRemainingCells(bluePieces.value));
+const orangeRemainingCells = computed(() => countRemainingCells(orangePieces.value));
 const isGameOver = computed(() => game.value?.status === "finished");
 </script>
 
@@ -339,15 +343,15 @@ const isGameOver = computed(() => game.value?.status === "finished");
         <div
           class="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0"
         >
-          <!-- Desktop: Left sidebar - Your pieces (visible at md+) -->
+          <!-- Desktop: Left sidebar - Your pieces or Blue pieces for spectators (visible at md+) -->
           <PieceSidebar
-            title="Your Pieces"
-            :pieces="myPieces"
-            :player-color="myColor || 'blue'"
-            :selected-piece-id="selectedPieceId"
-            :disabled="!isMyTurn"
+            :title="isSpectator ? blueDisplayName : 'Your Pieces'"
+            :pieces="isSpectator ? bluePieces : myPieces"
+            :player-color="isSpectator ? 'blue' : (myColor || 'blue')"
+            :selected-piece-id="isSpectator ? null : selectedPieceId"
+            :disabled="isSpectator || !isMyTurn"
             :board="(game.board as Board)"
-            :remaining-cells="myRemainingCells"
+            :remaining-cells="isSpectator ? blueRemainingCells : myRemainingCells"
             :show-cell-count="isGameOver"
             side="left"
             @select="selectPiece"
@@ -407,17 +411,20 @@ const isGameOver = computed(() => game.value?.status === "finished");
           <!-- Mobile footer with always-visible tray -->
           <MobileGameFooter
             v-if="game.status === 'playing' || game.status === 'finished'"
-            :my-pieces="myPieces"
-            :opponent-pieces="opponentPieces"
-            :my-color="myColor || 'blue'"
-            :opponent-color="myColor === 'blue' ? 'orange' : 'blue'"
-            :selected-piece-id="selectedPieceId"
+            :my-pieces="isSpectator ? bluePieces : myPieces"
+            :opponent-pieces="isSpectator ? orangePieces : opponentPieces"
+            :my-color="isSpectator ? 'blue' : (myColor || 'blue')"
+            :opponent-color="isSpectator ? 'orange' : (myColor === 'blue' ? 'orange' : 'blue')"
+            :selected-piece-id="isSpectator ? null : selectedPieceId"
             :is-my-turn="isMyTurn"
+            :is-spectator="isSpectator"
             :board="(game.board as Board)"
             :active-tab="activeTab"
             :opponent-name="opponentName"
-            :my-remaining-cells="myRemainingCells"
-            :opponent-remaining-cells="opponentRemainingCells"
+            :blue-display-name="blueDisplayName"
+            :orange-display-name="orangeDisplayName"
+            :my-remaining-cells="isSpectator ? blueRemainingCells : myRemainingCells"
+            :opponent-remaining-cells="isSpectator ? orangeRemainingCells : opponentRemainingCells"
             :show-cell-count="isGameOver"
             :current-orientation-index="currentOrientationIndex"
             :all-valid-placements="allValidPlacements"
@@ -431,15 +438,15 @@ const isGameOver = computed(() => game.value?.status === "finished");
             @pass="passTurnAction"
           />
 
-          <!-- Desktop: Right sidebar - Opponent pieces (visible at lg+ only) -->
+          <!-- Desktop: Right sidebar - Opponent pieces or Orange pieces for spectators (visible at lg+ only) -->
           <PieceSidebar
-            :title="`${opponentName}'s Pieces`"
-            :pieces="opponentPieces"
-            :player-color="myColor === 'blue' ? 'orange' : 'blue'"
+            :title="isSpectator ? orangeDisplayName : `${opponentName}'s Pieces`"
+            :pieces="isSpectator ? orangePieces : opponentPieces"
+            :player-color="isSpectator ? 'orange' : (myColor === 'blue' ? 'orange' : 'blue')"
             :selected-piece-id="null"
             :disabled="true"
             :board="(game.board as Board)"
-            :remaining-cells="opponentRemainingCells"
+            :remaining-cells="isSpectator ? orangeRemainingCells : opponentRemainingCells"
             :show-cell-count="isGameOver"
             side="right"
             @select="() => {}"

@@ -66,6 +66,10 @@ export function useGameState(code: Ref<string>, role: Ref<GameRole | null>, play
     return game.value.pieces[opponentColor];
   });
 
+  // Color-based pieces (for spectators)
+  const bluePieces = computed(() => game.value?.pieces.blue ?? []);
+  const orangePieces = computed(() => game.value?.pieces.orange ?? []);
+
   // Player names
   const blueName = computed(() => getPlayerName(game.value?.players.blue));
   const orangeName = computed(() => getPlayerName(game.value?.players.orange));
@@ -106,6 +110,8 @@ export function useGameState(code: Ref<string>, role: Ref<GameRole | null>, play
     isMyTurn,
     myPieces,
     opponentPieces,
+    bluePieces,
+    orangePieces,
     blueName,
     orangeName,
     opponentName,

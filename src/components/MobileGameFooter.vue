@@ -1,18 +1,22 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { PlayerColor, Board } from "../../lib/validation";
 import PieceTray from "./PieceTray.vue";
 import PlacementThumbwheel from "./PlacementThumbwheel.vue";
 
-defineProps<{
+const props = defineProps<{
   myPieces: number[];
   opponentPieces: number[];
   myColor: PlayerColor;
   opponentColor: PlayerColor;
   selectedPieceId: number | null;
   isMyTurn: boolean;
+  isSpectator: boolean;
   board: Board;
   activeTab: "mine" | "opponent";
   opponentName: string;
+  blueDisplayName: string;
+  orangeDisplayName: string;
   myRemainingCells: number;
   opponentRemainingCells: number;
   showCellCount: boolean;
@@ -26,6 +30,10 @@ defineProps<{
   previewCells: [number, number][] | null;
   canPass: boolean;
 }>();
+
+// Computed labels for tabs (spectators see color names, players see Mine/Opponent)
+const firstTabLabel = computed(() => props.isSpectator ? props.blueDisplayName : "Mine");
+const secondTabLabel = computed(() => props.isSpectator ? props.orangeDisplayName : props.opponentName);
 
 const emit = defineEmits<{
   switchTab: [tab: "mine" | "opponent"];
@@ -52,7 +60,7 @@ const emit = defineEmits<{
             ]"
             @click="emit('switchTab', 'mine')"
           >
-            Mine<span
+            {{ firstTabLabel }}<span
               v-if="showCellCount"
               class="text-muted font-normal"
             > ({{ myRemainingCells }})</span>
@@ -66,7 +74,7 @@ const emit = defineEmits<{
             ]"
             @click="emit('switchTab', 'opponent')"
           >
-            {{ opponentName }}<span
+            {{ secondTabLabel }}<span
               v-if="showCellCount"
               class="text-muted font-normal"
             > ({{ opponentRemainingCells }})</span>
@@ -78,8 +86,8 @@ const emit = defineEmits<{
             v-if="activeTab === 'mine'"
             :pieces="myPieces"
             :player-color="myColor"
-            :selected-piece-id="selectedPieceId"
-            :disabled="!isMyTurn"
+            :selected-piece-id="isSpectator ? null : selectedPieceId"
+            :disabled="isSpectator || !isMyTurn"
             :board="board"
             horizontal
             @select="emit('select', $event)"
