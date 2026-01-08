@@ -614,3 +614,57 @@ export const requestRematch = mutation({
     return { success: true, waiting: true };
   },
 });
+
+export const nudgePlayer = mutation({
+  args: { code: v.string(), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      return { success: false, error: "Game not found" };
+    }
+
+    if (game.status !== "playing") {
+      return { success: false, error: "Game is not in progress" };
+    }
+
+    // Determine player color
+    let playerColor: PlayerColor;
+    if (normalizePlayer(game.players.blue) === args.playerId) {
+      playerColor = "blue";
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
+      playerColor = "orange";
+    } else {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    // Can only nudge when it's NOT your turn
+    if (game.currentTurn === playerColor) {
+      return { success: false, error: "It's your turn, not the opponent's" };
+    }
+
+    // Get opponent player ID
+    const opponentColor = playerColor === "blue" ? "orange" : "blue";
+    const opponent = game.players[opponentColor];
+    const opponentId = normalizePlayer(opponent);
+
+    if (!opponentId) {
+      return { success: false, error: "Opponent not found" };
+    }
+
+    // Send push notification
+    await schedulePushNotification(
+      ctx.scheduler,
+      opponentId,
+      "Blokli",
+      "Still waiting for your move!",
+      args.code,
+      "nudge"
+    );
+
+    return { success: true };
+  },
+});
