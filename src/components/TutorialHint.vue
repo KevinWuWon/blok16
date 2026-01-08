@@ -55,22 +55,22 @@ defineProps<{
 
   .hint-top {
     position-area: top;
-    margin-bottom: 8px;
+    margin-bottom: 24px;
   }
 
   .hint-bottom {
     position-area: bottom;
-    margin-top: 8px;
+    margin-top: 24px;
   }
 
   .hint-left {
     position-area: left;
-    margin-right: 8px;
+    margin-right: 24px;
   }
 
   .hint-right {
     position-area: right;
-    margin-left: 8px;
+    margin-left: 24px;
   }
 }
 

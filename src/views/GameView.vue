@@ -660,7 +660,7 @@ function handlePlacementIndexChangeWithHint(index: number) {
       />
       <TutorialHint
         v-if="showSpinWheelHint"
-        text="Scroll to change position"
+        text="Spin the wheel to change position"
         anchor-name="--spin-wheel"
         position="left"
         :fallback-position="{ bottom: '150px', right: '60px', left: 'unset' }"
