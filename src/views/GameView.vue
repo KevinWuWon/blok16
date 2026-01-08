@@ -29,6 +29,9 @@ import {
   getSubscriptionData,
 } from "@/composables/useNotifications";
 import { getStoredValue, setStoredValue } from "@/composables/useStorage";
+import { useTutorialHints } from "@/composables/useTutorialHints";
+import TutorialHint from "@/components/TutorialHint.vue";
+import { useMediaQuery } from "@vueuse/core";
 
 const route = useRoute();
 const code = computed(() => route.params.code as string);
@@ -372,6 +375,51 @@ async function handleRematchNudge() {
     isNudgingRematch.value = false;
   }
 }
+
+// Tutorial hints
+const {
+  isLoaded: hintsLoaded,
+  hasSeenClickDotHint,
+  hasSeenSpinWheelHint,
+  markHintSeen,
+  resetHints,
+} = useTutorialHints();
+
+const isMobile = useMediaQuery("(max-width: 767px)");
+
+// Show click dot hint when: piece selected, anchors visible, hint not seen
+const showClickDotHint = computed(() => {
+  if (!hintsLoaded.value || hasSeenClickDotHint.value) return false;
+  if (!isMyTurn.value || selectedPieceId.value === null) return false;
+  if (validAnchorsForSelectedPiece.value.length === 0) return false;
+  if (previewCells.value !== null) return false; // Already placed
+  return true;
+});
+
+// Show spin wheel hint when: preview exists, on mobile, hint not seen
+const showSpinWheelHint = computed(() => {
+  if (!hintsLoaded.value || hasSeenSpinWheelHint.value) return false;
+  if (!isMobile.value) return false;
+  if (!isMyTurn.value || selectedPieceId.value === null) return false;
+  if (previewCells.value === null) return false; // Need preview first
+  return true;
+});
+
+// Handle board click to dismiss click dot hint
+function handleBoardClickWithHint(row: number, col: number) {
+  if (showClickDotHint.value) {
+    markHintSeen("clickDot");
+  }
+  handleBoardClick(row, col);
+}
+
+// Handle wheel scroll to dismiss spin wheel hint
+function handlePlacementIndexChangeWithHint(index: number) {
+  if (showSpinWheelHint.value) {
+    markHintSeen("spinWheel");
+  }
+  setPlacementByIndex(index);
+}
 </script>
 
 <template>
@@ -496,7 +544,8 @@ async function handleRematchNudge() {
                 :is-dragging="isDragging"
                 :compact="false"
                 :last-placement-cells="(game.lastPlacement as [number, number][])"
-                @cell-click="handleBoardClick"
+                :show-first-anchor-hint="showClickDotHint"
+                @cell-click="handleBoardClickWithHint"
                 @drag-start="startDrag"
               />
             </div>
@@ -525,9 +574,10 @@ async function handleRematchNudge() {
             :current-placement-index="currentPlacementIndex"
             :preview-cells="previewCells"
             :can-pass="canPass"
+            :show-wheel-hint="showSpinWheelHint"
             @switch-tab="switchTab"
             @select="selectPiece"
-            @placement-index-change="setPlacementByIndex"
+            @placement-index-change="handlePlacementIndexChangeWithHint"
             @confirm="confirmPlacement"
             @pass="passTurnAction"
           />
@@ -597,6 +647,23 @@ async function handleRematchNudge() {
       <HelpDialog
         :open="helpDialogOpen"
         @update:open="helpDialogOpen = $event"
+        @reset-hints="resetHints"
+      />
+
+      <!-- Tutorial hints -->
+      <TutorialHint
+        v-if="showClickDotHint"
+        text="Tap a dot to place your piece"
+        anchor-name="--first-anchor"
+        position="top"
+        :fallback-position="{ bottom: '200px' }"
+      />
+      <TutorialHint
+        v-if="showSpinWheelHint"
+        text="Scroll to change position"
+        anchor-name="--spin-wheel"
+        position="left"
+        :fallback-position="{ bottom: '150px', right: '60px', left: 'unset' }"
       />
     </template>
   </div>

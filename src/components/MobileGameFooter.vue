@@ -29,6 +29,7 @@ const props = defineProps<{
   currentPlacementIndex: number;
   previewCells: [number, number][] | null;
   canPass: boolean;
+  showWheelHint?: boolean;
 }>();
 
 // Computed labels for tabs (spectators see color names, players see Mine/Opponent)
@@ -135,7 +136,10 @@ const emit = defineEmits<{
       <!-- Thumbwheel -->
       <div
         class="flex-1 min-h-0 relative my-2 mx-1"
-        :class="{ invisible: selectedPieceId === null }"
+        :class="[
+          { invisible: selectedPieceId === null },
+          { 'spin-wheel-anchor': showWheelHint }
+        ]"
       >
         <PlacementThumbwheel
           :placements="allValidPlacements"
@@ -146,3 +150,9 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.spin-wheel-anchor {
+  anchor-name: --spin-wheel;
+}
+</style>

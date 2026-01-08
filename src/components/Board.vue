@@ -11,6 +11,7 @@ const props = defineProps<{
   isDragging?: boolean
   compact?: boolean
   lastPlacementCells?: [number, number][] | null
+  showFirstAnchorHint?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,6 +48,12 @@ function isPreviewCell(row: number, col: number): boolean {
 function isValidAnchor(row: number, col: number): boolean {
   if (!props.showAnchors) return false
   return props.validAnchors.some(([r, c]) => r === row && c === col)
+}
+
+function isFirstAnchor(row: number, col: number): boolean {
+  if (!props.showAnchors || props.validAnchors.length === 0) return false
+  const [firstRow, firstCol] = props.validAnchors[0]
+  return row === firstRow && col === firstCol
 }
 
 function isStartingPosition(row: number, col: number): "blue" | "orange" | null {
@@ -145,7 +152,14 @@ function handleCellClick(row: number, col: number) {
       <div
         v-if="isValidAnchor(cell.row, cell.col)"
         class="absolute inset-0 m-auto w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"
+        :class="{ 'first-anchor-dot': showFirstAnchorHint && isFirstAnchor(cell.row, cell.col) }"
       />
     </div>
   </div>
 </template>
+
+<style scoped>
+.first-anchor-dot {
+  anchor-name: --first-anchor;
+}
+</style>

@@ -5,7 +5,12 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
+  (e: "reset-hints"): void;
 }>();
+
+function handleResetHints() {
+  emit("reset-hints");
+}
 </script>
 
 <template>
@@ -63,13 +68,21 @@ const emit = defineEmits<{
       </div>
     </template>
     <template #footer>
-      <UButton
-        size="xl"
-        block
-        @click="emit('update:open', false)"
-      >
-        Got it
-      </UButton>
+      <div class="space-y-3">
+        <UButton
+          size="xl"
+          block
+          @click="emit('update:open', false)"
+        >
+          Got it
+        </UButton>
+        <button
+          class="w-full text-sm text-muted hover:text-default transition-colors"
+          @click="handleResetHints"
+        >
+          Show tutorial hints again
+        </button>
+      </div>
     </template>
   </ResponsiveDialog>
 </template>

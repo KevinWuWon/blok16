@@ -30,6 +30,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TakeoverConfirmDialog: typeof import('./src/components/TakeoverConfirmDialog.vue')['default']
+    TutorialHint: typeof import('./src/components/TutorialHint.vue')['default']
     UApp: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UBadge: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
     UButton: typeof import('./node_modules/.pnpm/@nuxt+ui@4.3.0_366e8768656bbe0600eeda73c2a503f5/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
