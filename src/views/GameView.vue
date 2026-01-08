@@ -54,6 +54,7 @@ const storedPlayerName = computed(() => gameRole.value.playerName.value);
 const claimColorMutation = useConvexMutation(api.games.claimColor);
 const placePieceMutation = useConvexMutation(api.games.placePiece);
 const passTurnMutation = useConvexMutation(api.games.passTurn);
+const nudgePlayerMutation = useConvexMutation(api.games.nudgePlayer);
 const pushSubscribeMutation = useConvexMutation(api.push.subscribe);
 const pushUpdateGameCodeMutation = useConvexMutation(api.push.updateGameCode);
 
@@ -285,6 +286,28 @@ const opponentRemainingCells = computed(() => countRemainingCells(opponentPieces
 const blueRemainingCells = computed(() => countRemainingCells(bluePieces.value));
 const orangeRemainingCells = computed(() => countRemainingCells(orangePieces.value));
 const isGameOver = computed(() => game.value?.status === "finished");
+
+// Nudge functionality
+const isNudging = ref(false);
+const canNudge = computed(() => {
+  return !isSpectator.value && !!myColor.value && !isMyTurn.value && game.value?.status === "playing";
+});
+
+async function handleNudge() {
+  if (!playerId.value || isNudging.value) return;
+
+  isNudging.value = true;
+  try {
+    await nudgePlayerMutation.mutate({
+      code: code.value,
+      playerId: playerId.value,
+    });
+  } catch (error) {
+    console.error("Failed to nudge player:", error);
+  } finally {
+    isNudging.value = false;
+  }
+}
 </script>
 
 <template>
@@ -384,6 +407,10 @@ const isGameOver = computed(() => game.value?.status === "finished");
                 :turn-label="turnLabel"
                 :blue-display-name="blueDisplayName"
                 :orange-display-name="orangeDisplayName"
+                :my-color="myColor"
+                :can-nudge="canNudge"
+                :is-nudging="isNudging"
+                @nudge="handleNudge"
               />
             </div>
 

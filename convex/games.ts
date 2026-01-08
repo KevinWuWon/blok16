@@ -614,3 +614,72 @@ export const requestRematch = mutation({
     return { success: true, waiting: true };
   },
 });
+
+export const nudgePlayer = mutation({
+  args: { code: v.string(), playerId: v.string() },
+  handler: async (ctx, args) => {
+    console.log("[Nudge] nudgePlayer mutation called", args);
+
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      console.log("[Nudge] Game not found");
+      return { success: false, error: "Game not found" };
+    }
+
+    console.log("[Nudge] Game found", { status: game.status, currentTurn: game.currentTurn });
+
+    if (game.status !== "playing") {
+      console.log("[Nudge] Game not in progress");
+      return { success: false, error: "Game is not in progress" };
+    }
+
+    // Determine player color
+    let playerColor: PlayerColor;
+    if (normalizePlayer(game.players.blue) === args.playerId) {
+      playerColor = "blue";
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
+      playerColor = "orange";
+    } else {
+      console.log("[Nudge] Not a player in this game");
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    console.log("[Nudge] Player color:", playerColor);
+
+    // Can only nudge when it's NOT your turn
+    if (game.currentTurn === playerColor) {
+      console.log("[Nudge] It's your turn, can't nudge");
+      return { success: false, error: "It's your turn, not the opponent's" };
+    }
+
+    // Get opponent player ID
+    const opponentColor = playerColor === "blue" ? "orange" : "blue";
+    const opponent = game.players[opponentColor];
+    const opponentId = normalizePlayer(opponent);
+
+    console.log("[Nudge] Opponent info", { opponentColor, opponentId });
+
+    if (!opponentId) {
+      console.log("[Nudge] Opponent not found");
+      return { success: false, error: "Opponent not found" };
+    }
+
+    // Send push notification
+    console.log("[Nudge] Scheduling push notification to", opponentId);
+    await schedulePushNotification(
+      ctx.scheduler,
+      opponentId,
+      "Blokli",
+      "Still waiting for your move!",
+      args.code,
+      "nudge"
+    );
+
+    console.log("[Nudge] Push notification scheduled successfully");
+    return { success: true };
+  },
+});
