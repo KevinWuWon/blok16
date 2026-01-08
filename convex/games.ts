@@ -74,15 +74,28 @@ export const getMyGames = query({
     const allGames = await ctx.db.query("games").collect();
 
     return allGames.filter((game) => {
-      // Only active games (waiting or playing)
-      if (game.status !== "waiting" && game.status !== "playing") {
-        return false;
-      }
-
       // Check if player is in this game
       const blueId = normalizePlayer(game.players.blue);
       const orangeId = normalizePlayer(game.players.orange);
-      return blueId === args.playerId || orangeId === args.playerId;
+      const isParticipant = blueId === args.playerId || orangeId === args.playerId;
+      if (!isParticipant) {
+        return false;
+      }
+
+      // Include active games (waiting or playing)
+      if (game.status === "waiting" || game.status === "playing") {
+        return true;
+      }
+
+      // Include finished games with pending rematch requests (no nextGameCode yet)
+      if (game.status === "finished" &&
+          game.rematchRequests &&
+          (game.rematchRequests.blue || game.rematchRequests.orange) &&
+          !game.nextGameCode) {
+        return true;
+      }
+
+      return false;
     }).map((game) => {
       // Determine player's color and opponent info
       const blueId = normalizePlayer(game.players.blue);
@@ -92,6 +105,12 @@ export const getMyGames = query({
       const opponent = game.players[opponentColor];
       const opponentName = getPlayerName(opponent);
 
+      // Check rematch request status for finished games
+      const rematchRequestedByMe = game.status === "finished" &&
+        game.rematchRequests?.[myColor] === true;
+      const rematchRequestedByOpponent = game.status === "finished" &&
+        game.rematchRequests?.[opponentColor] === true;
+
       return {
         code: game.code,
         status: game.status,
@@ -99,6 +118,8 @@ export const getMyGames = query({
         currentTurn: game.currentTurn,
         isMyTurn: game.currentTurn === myColor,
         opponentName: opponentName || null,
+        rematchRequestedByMe,
+        rematchRequestedByOpponent,
       };
     });
   },

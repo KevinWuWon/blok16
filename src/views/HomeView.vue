@@ -154,6 +154,18 @@ function joinGame() {
                   {{ game.isMyTurn ? 'Your turn' : 'Their turn' }}
                 </span>
                 <span
+                  v-else-if="game.rematchRequestedByOpponent"
+                  class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                >
+                  Rematch?
+                </span>
+                <span
+                  v-else-if="game.rematchRequestedByMe"
+                  class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                >
+                  Rematch sent
+                </span>
+                <span
                   v-else
                   class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                 >
