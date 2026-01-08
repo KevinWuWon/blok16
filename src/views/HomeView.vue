@@ -93,8 +93,8 @@ function joinGame() {
 </script>
 
 <template>
-  <div class="h-dvh flex flex-col items-center justify-center p-4">
-    <div class="text-center space-y-8">
+  <div class="h-dvh flex flex-col items-center p-4 pt-8 sm:justify-center sm:pt-4 overflow-hidden">
+    <div class="text-center space-y-4 sm:space-y-8 flex flex-col min-h-0 w-full max-w-sm">
       <div>
         <h1 class="text-4xl font-bold mb-2">
           Blokli
@@ -121,19 +121,15 @@ function joinGame() {
         </UButton>
       </div>
 
-      <div class="text-sm text-muted">
-        <p>Create a game and share the link, or join with a code.</p>
-      </div>
-
       <!-- My Active Games -->
       <div
         v-if="myGames && myGames.length > 0"
-        class="w-full max-w-sm"
+        class="w-full flex-1 min-h-0 flex flex-col"
       >
-        <h2 class="text-lg font-semibold mb-3 text-left">
+        <h2 class="text-lg font-semibold mb-3 text-left shrink-0">
           My Games
         </h2>
-        <ul class="space-y-2">
+        <ul class="space-y-2 overflow-y-auto flex-1 min-h-0">
           <li
             v-for="game in myGames"
             :key="game.code"
