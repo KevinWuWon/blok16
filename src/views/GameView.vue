@@ -55,6 +55,7 @@ const claimColorMutation = useConvexMutation(api.games.claimColor);
 const placePieceMutation = useConvexMutation(api.games.placePiece);
 const passTurnMutation = useConvexMutation(api.games.passTurn);
 const nudgePlayerMutation = useConvexMutation(api.games.nudgePlayer);
+const nudgeRematchMutation = useConvexMutation(api.games.nudgeRematch);
 const pushSubscribeMutation = useConvexMutation(api.push.subscribe);
 const pushUpdateGameCodeMutation = useConvexMutation(api.push.updateGameCode);
 
@@ -327,6 +328,50 @@ async function handleNudge() {
     isNudging.value = false;
   }
 }
+
+// Rematch nudge functionality
+const isNudgingRematch = ref(false);
+
+const canNudgeRematch = computed(() => {
+  if (isSpectator.value || !myColor.value || game.value?.status !== "finished") {
+    return false;
+  }
+
+  // Check if I've requested rematch and opponent hasn't
+  const iRequested = game.value?.rematchRequests?.[myColor.value] === true;
+  const opponentColor = myColor.value === "blue" ? "orange" : "blue";
+  const opponentRequested = game.value?.rematchRequests?.[opponentColor] === true;
+
+  if (!iRequested || opponentRequested) {
+    return false;
+  }
+
+  const now = Date.now();
+
+  // Check if I haven't nudged in 4 hours (null = never nudged)
+  const lastNudgeAt = game.value?.lastNudgeAt;
+  if (lastNudgeAt && now - lastNudgeAt < NUDGE_THRESHOLD_MS) {
+    return false;
+  }
+
+  return true;
+});
+
+async function handleRematchNudge() {
+  if (!playerId.value || isNudgingRematch.value) return;
+
+  isNudgingRematch.value = true;
+  try {
+    await nudgeRematchMutation.mutate({
+      code: code.value,
+      playerId: playerId.value,
+    });
+  } catch (error) {
+    console.error("Failed to nudge for rematch:", error);
+  } finally {
+    isNudgingRematch.value = false;
+  }
+}
 </script>
 
 <template>
@@ -417,6 +462,9 @@ async function handleNudge() {
                     :player-id="playerId"
                     :my-color="myColor"
                     :player-name="storedPlayerName ?? 'Anonymous'"
+                    :can-nudge-rematch="canNudgeRematch"
+                    :is-nudging-rematch="isNudgingRematch"
+                    @nudge="handleRematchNudge"
                   />
                 </GameResult>
               </template>

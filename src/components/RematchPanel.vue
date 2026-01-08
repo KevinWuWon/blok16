@@ -13,6 +13,12 @@ const props = defineProps<{
   playerId: string;
   myColor: PlayerColor;
   playerName: string;
+  canNudgeRematch: boolean;
+  isNudgingRematch: boolean;
+}>();
+
+const emit = defineEmits<{
+  nudge: [];
 }>();
 
 const router = useRouter();
@@ -80,7 +86,7 @@ async function requestRematch() {
   <!-- Waiting: I requested -->
   <div
     v-else-if="rematchState === 'waiting'"
-    class="text-center"
+    class="text-center flex items-center justify-center gap-2"
   >
     <UButton
       size="xl"
@@ -89,6 +95,14 @@ async function requestRematch() {
     >
       Waiting for opponent...
     </UButton>
+    <UButton
+      v-if="canNudgeRematch"
+      size="xl"
+      variant="ghost"
+      icon="i-lucide-hand"
+      :loading="isNudgingRematch"
+      @click="emit('nudge')"
+    />
   </div>
 
   <!-- Invited: Opponent requested -->

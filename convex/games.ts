@@ -632,10 +632,26 @@ export const requestRematch = mutation({
       return { success: true, newGameCode: newCode };
     }
 
-    // First request - just store it
+    // First request - store it and notify opponent
     await ctx.db.patch(game._id, {
       rematchRequests: newRematchRequests,
     });
+
+    // Notify opponent about rematch request
+    const opponentColor = playerColor === "blue" ? "orange" : "blue";
+    const opponentId = normalizePlayer(game.players[opponentColor]);
+    const requesterName = getPlayerName(game.players[playerColor]) || "Your opponent";
+
+    if (opponentId) {
+      await schedulePushNotification(
+        ctx.scheduler,
+        opponentId,
+        "Blokli",
+        `${requesterName} wants a rematch!`,
+        args.code,
+        "rematch-request"
+      );
+    }
 
     return { success: true, waiting: true };
   },
@@ -712,6 +728,73 @@ export const nudgePlayer = mutation({
     });
 
     console.log("[Nudge] Push notification scheduled successfully");
+    return { success: true };
+  },
+});
+
+export const nudgeRematch = mutation({
+  args: { code: v.string(), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      return { success: false, error: "Game not found" };
+    }
+
+    if (game.status !== "finished") {
+      return { success: false, error: "Game is not finished" };
+    }
+
+    // Determine player color
+    let playerColor: PlayerColor;
+    if (normalizePlayer(game.players.blue) === args.playerId) {
+      playerColor = "blue";
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
+      playerColor = "orange";
+    } else {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    // Can only nudge if I've requested rematch and opponent hasn't
+    const iRequested = game.rematchRequests?.[playerColor] === true;
+    const opponentColor = playerColor === "blue" ? "orange" : "blue";
+    const opponentRequested = game.rematchRequests?.[opponentColor] === true;
+
+    if (!iRequested) {
+      return { success: false, error: "You haven't requested a rematch" };
+    }
+
+    if (opponentRequested) {
+      return { success: false, error: "Opponent has already accepted" };
+    }
+
+    // Get opponent player ID
+    const opponent = game.players[opponentColor];
+    const opponentId = normalizePlayer(opponent);
+
+    if (!opponentId) {
+      return { success: false, error: "Opponent not found" };
+    }
+
+    // Send push notification
+    const nudgerName = getPlayerName(game.players[playerColor]) || "Your opponent";
+    await schedulePushNotification(
+      ctx.scheduler,
+      opponentId,
+      "Blokli",
+      `${nudgerName} is waiting for your rematch decision!`,
+      args.code,
+      "rematch-nudge"
+    );
+
+    // Record nudge timestamp (reuse lastNudgeAt)
+    await ctx.db.patch(game._id, {
+      lastNudgeAt: Date.now(),
+    });
+
     return { success: true };
   },
 });
