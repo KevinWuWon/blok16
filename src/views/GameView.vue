@@ -290,7 +290,7 @@ const isGameOver = computed(() => game.value?.status === "finished");
 // Nudge functionality
 const isNudging = ref(false);
 const canNudge = computed(() => {
-  return !isSpectator.value && myColor.value && !isMyTurn.value && game.value?.status === "playing";
+  return !isSpectator.value && !!myColor.value && !isMyTurn.value && game.value?.status === "playing";
 });
 
 async function handleNudge() {
@@ -385,7 +385,7 @@ async function handleNudge() {
             class="flex flex-col items-center py-2 px-4 overflow-hidden justify-center shrink-0 items-stretch"
           >
             <!-- Game status / Turn indicator -->
-            <div class="mb-2 flex flex-col items-center gap-2">
+            <div class="mb-2">
               <template v-if="game.status === 'finished'">
                 <GameResult
                   :winner="game.winner!"
@@ -401,25 +401,17 @@ async function handleNudge() {
                   />
                 </GameResult>
               </template>
-              <template v-else>
-                <PlayerTurnIndicator
-                  :current-turn="game.currentTurn"
-                  :turn-label="turnLabel"
-                  :blue-display-name="blueDisplayName"
-                  :orange-display-name="orangeDisplayName"
-                />
-                <!-- Nudge button - shown when it's opponent's turn -->
-                <UButton
-                  v-if="canNudge"
-                  size="sm"
-                  variant="outline"
-                  icon="i-lucide-bell"
-                  :loading="isNudging"
-                  @click="handleNudge"
-                >
-                  Nudge
-                </UButton>
-              </template>
+              <PlayerTurnIndicator
+                v-else
+                :current-turn="game.currentTurn"
+                :turn-label="turnLabel"
+                :blue-display-name="blueDisplayName"
+                :orange-display-name="orangeDisplayName"
+                :my-color="myColor"
+                :can-nudge="canNudge"
+                :is-nudging="isNudging"
+                @nudge="handleNudge"
+              />
             </div>
 
             <div class="flex flex-col items-center">

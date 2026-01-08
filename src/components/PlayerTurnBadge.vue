@@ -6,6 +6,12 @@ defineProps<{
   displayName: string;
   isActive: boolean;
   turnLabel: string;
+  showNudge?: boolean;
+  isNudging?: boolean;
+}>();
+
+const emit = defineEmits<{
+  nudge: [];
 }>();
 </script>
 
@@ -28,7 +34,7 @@ defineProps<{
       {{ turnLabel }}
     </span>
     <span
-      class="font-bold text-lg"
+      class="font-bold text-lg inline-flex items-center gap-1"
       :class="[
         color === 'blue'
           ? isActive
@@ -40,6 +46,15 @@ defineProps<{
       ]"
     >
       {{ displayName }}
+      <UButton
+        v-if="showNudge"
+        size="2xs"
+        variant="ghost"
+        icon="i-lucide-hand"
+        :loading="isNudging"
+        class="ml-1"
+        @click.stop="emit('nudge')"
+      />
     </span>
   </div>
 </template>
