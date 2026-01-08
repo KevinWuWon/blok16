@@ -361,12 +361,13 @@ export const placePiece = mutation({
     if (newStatus === "playing") {
       const nextPlayer = game.players[nextTurnFinal];
       const nextPlayerId = normalizePlayer(nextPlayer);
+      const currentPlayerName = getPlayerName(game.players[playerColor]) || "Your opponent";
       if (nextPlayerId) {
         await schedulePushNotification(
           ctx.scheduler,
           nextPlayerId,
           "Blokli",
-          "It's your turn!",
+          `${currentPlayerName} played. It's your turn!`,
           args.code,
           "your-turn"
         );
@@ -491,12 +492,13 @@ export const passTurn = mutation({
       // Notify next player it's their turn
       const nextPlayer = game.players[nextTurn];
       const nextPlayerId = normalizePlayer(nextPlayer);
+      const currentPlayerName = getPlayerName(game.players[playerColor]) || "Your opponent";
       if (nextPlayerId) {
         await schedulePushNotification(
           ctx.scheduler,
           nextPlayerId,
           "Blokli",
-          "It's your turn!",
+          `${currentPlayerName} passed. It's your turn!`,
           args.code,
           "your-turn"
         );
@@ -672,12 +674,13 @@ export const nudgePlayer = mutation({
     }
 
     // Send push notification
+    const nudgerName = getPlayerName(game.players[playerColor]) || "Your opponent";
     console.log("[Nudge] Scheduling push notification to", opponentId);
     await schedulePushNotification(
       ctx.scheduler,
       opponentId,
       "Blokli",
-      "Still waiting for your move!",
+      `${nudgerName} is waiting for your move!`,
       args.code,
       "nudge"
     );
