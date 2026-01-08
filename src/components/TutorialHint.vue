@@ -1,24 +1,133 @@
 <script setup lang="ts">
-defineProps<{
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+
+const props = defineProps<{
   text: string;
   anchorName: string;
   position?: "top" | "bottom" | "left" | "right";
   fallbackPosition?: { bottom?: string; top?: string; left?: string; right?: string };
 }>();
+
+const overlayRef = ref<HTMLElement | null>(null);
+const jsPositionStyle = ref<Record<string, string>>({});
+
+const supportsAnchors = typeof CSS !== "undefined"
+  && typeof CSS.supports === "function"
+  && CSS.supports("anchor-name: --x");
+const resolvedPosition = computed(() => props.position ?? "top");
+const baseStyle = computed(() => ({
+  "--anchor": props.anchorName,
+  "--fallback-bottom": props.fallbackPosition?.bottom,
+  "--fallback-top": props.fallbackPosition?.top,
+  "--fallback-left": props.fallbackPosition?.left ?? "50%",
+  "--fallback-right": props.fallbackPosition?.right,
+}));
+const isJsPositioned = computed(() => Boolean(jsPositionStyle.value.top));
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const updatePosition = () => {
+  if (supportsAnchors || typeof window === "undefined") {
+    jsPositionStyle.value = {};
+    return;
+  }
+
+  const overlay = overlayRef.value;
+  if (!overlay) {
+    return;
+  }
+
+  const anchor = findAnchorElement(props.anchorName);
+  if (!anchor) {
+    jsPositionStyle.value = {};
+    return;
+  }
+
+  const overlayRect = overlay.getBoundingClientRect();
+  const anchorRect = anchor.getBoundingClientRect();
+  const spacing = 24;
+  const padding = 8;
+
+  let top = 0;
+  let left = 0;
+
+  switch (resolvedPosition.value) {
+    case "bottom":
+      top = anchorRect.bottom + spacing;
+      left = anchorRect.left + anchorRect.width / 2 - overlayRect.width / 2;
+      break;
+    case "left":
+      top = anchorRect.top + anchorRect.height / 2 - overlayRect.height / 2;
+      left = anchorRect.left - overlayRect.width - spacing;
+      break;
+    case "right":
+      top = anchorRect.top + anchorRect.height / 2 - overlayRect.height / 2;
+      left = anchorRect.right + spacing;
+      break;
+    case "top":
+    default:
+      top = anchorRect.top - overlayRect.height - spacing;
+      left = anchorRect.left + anchorRect.width / 2 - overlayRect.width / 2;
+      break;
+  }
+
+  const maxLeft = Math.max(padding, window.innerWidth - overlayRect.width - padding);
+  const maxTop = Math.max(padding, window.innerHeight - overlayRect.height - padding);
+
+  jsPositionStyle.value = {
+    top: `${Math.round(clamp(top, padding, maxTop))}px`,
+    left: `${Math.round(clamp(left, padding, maxLeft))}px`,
+    bottom: "auto",
+    right: "auto",
+    transform: "none",
+  };
+};
+
+const findAnchorElement = (anchorName: string) => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const normalized = anchorName.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const dataSelector = `[data-anchor-name="${normalized.replace(/"/g, '\\"')}"]`;
+  const direct = document.querySelector(dataSelector);
+  if (direct instanceof HTMLElement) {
+    return direct;
+  }
+
+  return null;
+};
+
+watch(
+  () => [props.anchorName, props.position, props.text],
+  async () => {
+    if (supportsAnchors) {
+      return;
+    }
+    await nextTick();
+    updatePosition();
+  },
+);
+
+onMounted(() => {
+  if (supportsAnchors || typeof window === "undefined") {
+    return;
+  }
+  nextTick().then(() => updatePosition());
+});
 </script>
 
 <template>
   <Teleport to="body">
     <div
+      ref="overlayRef"
       class="hint-overlay"
-      :class="[`hint-${position ?? 'top'}`]"
-      :style="{
-        '--anchor': anchorName,
-        '--fallback-bottom': fallbackPosition?.bottom,
-        '--fallback-top': fallbackPosition?.top,
-        '--fallback-left': fallbackPosition?.left ?? '50%',
-        '--fallback-right': fallbackPosition?.right,
-      }"
+      :class="[`hint-${resolvedPosition}`, { 'hint-js': isJsPositioned }]"
+      :style="[baseStyle, jsPositionStyle]"
     >
       <div class="hint-content">
         <span class="hint-text">{{ text }}</span>
@@ -138,6 +247,21 @@ defineProps<{
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+.hint-js {
+  animation: hint-fade-in-js 0.3s ease-out;
+}
+
+@keyframes hint-fade-in-js {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

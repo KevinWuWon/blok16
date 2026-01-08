@@ -153,6 +153,7 @@ function handleCellClick(row: number, col: number) {
         v-if="isValidAnchor(cell.row, cell.col)"
         class="absolute inset-0 m-auto w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"
         :class="{ 'first-anchor-dot': showFirstAnchorHint && isFirstAnchor(cell.row, cell.col) }"
+        :data-anchor-name="showFirstAnchorHint && isFirstAnchor(cell.row, cell.col) ? '--first-anchor' : undefined"
       />
     </div>
   </div>

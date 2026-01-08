@@ -140,6 +140,7 @@ const emit = defineEmits<{
           { invisible: selectedPieceId === null },
           { 'spin-wheel-anchor': showWheelHint }
         ]"
+        :data-anchor-name="showWheelHint ? '--spin-wheel' : undefined"
       >
         <PlacementThumbwheel
           :placements="allValidPlacements"
