@@ -405,6 +405,10 @@ const showSpinWheelHint = computed(() => {
   return true;
 });
 
+const hintsEnabled = computed(
+  () => !hasSeenClickDotHint.value && !hasSeenSpinWheelHint.value
+);
+
 // Handle board click to dismiss click dot hint
 function handleBoardClickWithHint(row: number, col: number) {
   if (showClickDotHint.value) {
@@ -646,6 +650,7 @@ function handlePlacementIndexChangeWithHint(index: number) {
       <!-- Help dialog -->
       <HelpDialog
         :open="helpDialogOpen"
+        :hints-enabled="hintsEnabled"
         @update:open="helpDialogOpen = $event"
         @reset-hints="resetHints"
       />

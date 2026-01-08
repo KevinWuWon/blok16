@@ -1,6 +1,9 @@
 <script setup lang="ts">
-defineProps<{
+import { ref, watch } from "vue";
+
+const props = defineProps<{
   open: boolean;
+  hintsEnabled: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -8,9 +11,21 @@ const emit = defineEmits<{
   (e: "reset-hints"): void;
 }>();
 
-function handleResetHints() {
-  emit("reset-hints");
-}
+const showTutorialHints = ref(false);
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      showTutorialHints.value = props.hintsEnabled;
+      return;
+    }
+    if (showTutorialHints.value && !props.hintsEnabled) {
+      emit("reset-hints");
+    }
+    showTutorialHints.value = false;
+  }
+);
 </script>
 
 <template>
@@ -69,6 +84,10 @@ function handleResetHints() {
     </template>
     <template #footer>
       <div class="space-y-3">
+        <UCheckbox
+          v-model="showTutorialHints"
+          label="Show tutorial hints"
+        />
         <UButton
           size="xl"
           block
@@ -76,12 +95,6 @@ function handleResetHints() {
         >
           Got it
         </UButton>
-        <button
-          class="w-full text-sm text-muted hover:text-default transition-colors"
-          @click="handleResetHints"
-        >
-          Show tutorial hints again
-        </button>
       </div>
     </template>
   </ResponsiveDialog>
