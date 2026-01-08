@@ -14,12 +14,17 @@ export const sendPushNotification = action({
     tag: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    console.log("[Push] sendPushNotification called", args);
+
     // Get all subscriptions for this player
     const subscriptions = await ctx.runQuery(internal.push.getSubscriptionsForPlayer, {
       playerId: args.playerId,
     });
 
+    console.log("[Push] Found subscriptions:", subscriptions.length);
+
     if (subscriptions.length === 0) {
+      console.log("[Push] No subscriptions found for player");
       return { sent: 0, failed: 0 };
     }
 
