@@ -289,8 +289,27 @@ const isGameOver = computed(() => game.value?.status === "finished");
 
 // Nudge functionality
 const isNudging = ref(false);
+const NUDGE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
+
 const canNudge = computed(() => {
-  return !isSpectator.value && !!myColor.value && !isMyTurn.value && game.value?.status === "playing";
+  if (isSpectator.value || !myColor.value || isMyTurn.value || game.value?.status !== "playing") {
+    return false;
+  }
+  const now = Date.now();
+
+  // Check if opponent hasn't moved in 4 hours (null = infinitely long ago)
+  const lastMoveAt = game.value?.lastMoveAt;
+  if (lastMoveAt && now - lastMoveAt < NUDGE_THRESHOLD_MS) {
+    return false;
+  }
+
+  // Check if I haven't nudged in 4 hours (null = never nudged)
+  const lastNudgeAt = game.value?.lastNudgeAt;
+  if (lastNudgeAt && now - lastNudgeAt < NUDGE_THRESHOLD_MS) {
+    return false;
+  }
+
+  return true;
 });
 
 async function handleNudge() {

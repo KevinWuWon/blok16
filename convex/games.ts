@@ -354,6 +354,7 @@ export const placePiece = mutation({
       winner: newWinner,
       lastPassedBy: newStatus === "playing" ? nextLastPassedBy : null,
       lastPlacement: args.cells,
+      lastMoveAt: Date.now(),
     });
 
     // Send push notification to the next player (if game is still playing)
@@ -451,6 +452,7 @@ export const passTurn = mutation({
         status: "finished",
         winner,
         currentTurn: nextTurn,
+        lastMoveAt: Date.now(),
       });
 
       // Notify both players about game end
@@ -483,6 +485,7 @@ export const passTurn = mutation({
       await ctx.db.patch(game._id, {
         currentTurn: nextTurn,
         lastPassedBy: playerColor,
+        lastMoveAt: Date.now(),
       });
 
       // Notify next player it's their turn
@@ -678,6 +681,11 @@ export const nudgePlayer = mutation({
       args.code,
       "nudge"
     );
+
+    // Record nudge timestamp
+    await ctx.db.patch(game._id, {
+      lastNudgeAt: Date.now(),
+    });
 
     console.log("[Nudge] Push notification scheduled successfully");
     return { success: true };

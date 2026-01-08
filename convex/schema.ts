@@ -24,6 +24,8 @@ export default defineSchema({
     winner: v.union(v.literal("blue"), v.literal("orange"), v.literal("draw"), v.null()),
     lastPassedBy: v.union(v.literal("blue"), v.literal("orange"), v.null()),
     lastPlacement: v.optional(v.array(v.array(v.number()))),
+    lastMoveAt: v.optional(v.number()),
+    lastNudgeAt: v.optional(v.number()),
     createdAt: v.number(),
     // Rematch flow
     rematchRequests: v.optional(v.object({
