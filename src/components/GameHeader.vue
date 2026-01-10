@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DerivedUIState } from "@/composables/useGameFlow";
+import GameOverflowMenu from "@/components/GameOverflowMenu.vue";
 
 defineProps<{
   code: string;
@@ -7,12 +8,14 @@ defineProps<{
   bellIcon: string;
   derivedUIState: DerivedUIState;
   isSpectator: boolean;
+  gameStatus: "waiting" | "playing" | "finished";
 }>();
 
 const emit = defineEmits<{
   helpClick: [];
   notificationClick: [];
   roleClick: [];
+  menuResign: [];
 }>();
 </script>
 
@@ -57,6 +60,10 @@ const emit = defineEmits<{
         :icon="bellIcon"
         title="Notification settings"
         @click="emit('notificationClick')"
+      />
+      <GameOverflowMenu
+        :disabled="isSpectator || gameStatus !== 'playing'"
+        @resign="emit('menuResign')"
       />
     </div>
   </header>

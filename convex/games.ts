@@ -798,3 +798,70 @@ export const nudgeRematch = mutation({
     return { success: true };
   },
 });
+
+export const resign = mutation({
+  args: { code: v.string(), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .first();
+
+    if (!game) {
+      return { success: false, error: "Game not found" };
+    }
+
+    if (game.status !== "playing") {
+      return { success: false, error: "Game is not in progress" };
+    }
+
+    // Determine player color
+    let playerColor: PlayerColor;
+    if (normalizePlayer(game.players.blue) === args.playerId) {
+      playerColor = "blue";
+    } else if (normalizePlayer(game.players.orange) === args.playerId) {
+      playerColor = "orange";
+    } else {
+      return { success: false, error: "Not a player in this game" };
+    }
+
+    const opponentColor = playerColor === "blue" ? "orange" : "blue";
+
+    // End the game with opponent as winner
+    await ctx.db.patch(game._id, {
+      status: "finished",
+      winner: opponentColor,
+      lastPassedBy: null,
+      lastMoveAt: Date.now(),
+    });
+
+    // Send push notifications
+    const resignerName = getPlayerName(game.players[playerColor]) || "Your opponent";
+    const opponentId = normalizePlayer(game.players[opponentColor]);
+    const resignerId = normalizePlayer(game.players[playerColor]);
+
+    if (opponentId) {
+      await schedulePushNotification(
+        ctx.scheduler,
+        opponentId,
+        "Blokli - Game Over",
+        `${resignerName} resigned. You won!`,
+        args.code,
+        "game-end"
+      );
+    }
+
+    if (resignerId) {
+      await schedulePushNotification(
+        ctx.scheduler,
+        resignerId,
+        "Blokli - Game Over",
+        "You resigned.",
+        args.code,
+        "game-end"
+      );
+    }
+
+    return { success: true };
+  },
+});

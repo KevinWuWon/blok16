@@ -10,6 +10,7 @@ import RoleSelectionDialog from "@/components/RoleSelectionDialog.vue";
 import TakeoverConfirmDialog from "@/components/TakeoverConfirmDialog.vue";
 import NotificationStatusDialog from "@/components/NotificationStatusDialog.vue";
 import HelpDialog from "@/components/HelpDialog.vue";
+import ResignConfirmDialog from "@/components/ResignConfirmDialog.vue";
 import RematchPanel from "@/components/RematchPanel.vue";
 import GameHeader from "@/components/GameHeader.vue";
 import WaitingScreen from "@/components/WaitingScreen.vue";
@@ -59,6 +60,7 @@ const placePieceMutation = useConvexMutation(api.games.placePiece);
 const passTurnMutation = useConvexMutation(api.games.passTurn);
 const nudgePlayerMutation = useConvexMutation(api.games.nudgePlayer);
 const nudgeRematchMutation = useConvexMutation(api.games.nudgeRematch);
+const resignMutation = useConvexMutation(api.games.resign);
 const pushSubscribeMutation = useConvexMutation(api.push.subscribe);
 const pushUpdateGameCodeMutation = useConvexMutation(api.push.updateGameCode);
 
@@ -179,6 +181,7 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
 // Dialog states
 const notificationDialogOpen = ref(false);
 const helpDialogOpen = ref(false);
+const resignDialogOpen = ref(false);
 
 const currentEndpoint = ref<string | null>(null);
 const isPlayerReady = computed(() => playerId.value.trim().length > 0);
@@ -376,6 +379,20 @@ async function handleRematchNudge() {
   }
 }
 
+// Resign functionality
+async function handleResign() {
+  if (!playerId.value) return;
+
+  try {
+    await resignMutation.mutate({
+      code: code.value,
+      playerId: playerId.value,
+    });
+  } catch (error) {
+    console.error("Failed to resign:", error);
+  }
+}
+
 // Tutorial hints
 const {
   isLoaded: hintsLoaded,
@@ -466,9 +483,11 @@ function handlePlacementIndexChangeWithHint(index: number) {
         :bell-icon="bellIcon"
         :derived-u-i-state="derivedUIState"
         :is-spectator="isSpectator"
+        :game-status="game.status"
         @help-click="helpDialogOpen = true"
         @notification-click="notificationDialogOpen = true"
         @role-click="openRoleSelection"
+        @menu-resign="resignDialogOpen = true"
       />
 
       <WaitingScreen
@@ -653,6 +672,13 @@ function handlePlacementIndexChangeWithHint(index: number) {
         :hints-enabled="hintsEnabled"
         @update:open="helpDialogOpen = $event"
         @reset-hints="resetHints"
+      />
+
+      <!-- Resign confirmation dialog -->
+      <ResignConfirmDialog
+        :open="resignDialogOpen"
+        @update:open="resignDialogOpen = $event"
+        @confirm="handleResign"
       />
 
       <!-- Tutorial hints -->
