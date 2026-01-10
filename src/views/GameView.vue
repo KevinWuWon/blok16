@@ -525,6 +525,8 @@ function handlePlacementIndexChangeWithHint(index: number) {
                 <GameResult
                   :winner="game.winner!"
                   :my-color="myColor"
+                  :resigned-by="game.resignedBy"
+                  :opponent-name="opponentName"
                 >
                   <RematchPanel
                     v-if="myColor"

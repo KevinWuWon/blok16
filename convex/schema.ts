@@ -22,6 +22,7 @@ export default defineSchema({
     currentTurn: v.union(v.literal("blue"), v.literal("orange")),
     status: v.union(v.literal("waiting"), v.literal("playing"), v.literal("finished")),
     winner: v.union(v.literal("blue"), v.literal("orange"), v.literal("draw"), v.null()),
+    resignedBy: v.optional(v.union(v.literal("blue"), v.literal("orange"))),
     lastPassedBy: v.union(v.literal("blue"), v.literal("orange"), v.null()),
     lastPlacement: v.optional(v.array(v.array(v.number()))),
     lastMoveAt: v.optional(v.number()),
